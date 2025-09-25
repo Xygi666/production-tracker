@@ -190,4 +190,118 @@
           <!-- Продукты -->
           <div class="settings-panel" data-panel="products">
             <div class="products-header">
-              <button class="btn btn--primary" id="addProduct
+              <button class="btn btn--primary" id="addProductBtn">Добавить продукт</button>
+              <button class="btn btn--outline" id="importProductsBtn">Импорт CSV</button>
+              <input type="file" id="importProductsFile" accept=".csv" style="display:none">
+            </div>
+            <div class="products-list" id="productsList"></div>
+          </div>
+
+          <!-- Общие -->
+          <div class="settings-panel" data-panel="general">
+            <div class="form-group">
+              <label for="themeSelect">Тема оформления</label>
+              <select id="themeSelect" class="form-control">
+                <option value="classic">Классическая</option>
+                <option value="dark">Тёмная</option>
+                <option value="light">Светлая</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="presetsInput">Пресеты количества (через запятую)</label>
+              <input type="text" id="presetsInput" class="form-control" placeholder="1,5,10,25,50">
+            </div>
+            <div class="form-group">
+              <label>Язык интерфейса</label>
+              <select class="form-control">
+                <option value="ru" selected>Русский</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Бэкап -->
+          <div class="settings-panel" data-panel="backup">
+            <div class="backup-section">
+              <h4>Ручной бэкап</h4>
+              <div class="backup-buttons">
+                <button class="btn btn--outline" id="emailBackupBtn">📧 Email</button>
+                <button class="btn btn--outline" id="yandexBackupBtn">☁️ Яндекс.Диск</button>
+                <button class="btn btn--outline" id="googleBackupBtn">📁 Google Drive</button>
+              </div>
+            </div>
+            <div class="backup-section">
+              <h4>Автоматический бэкап</h4>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="autoBackupEnabled">
+                  <span>Включить автоматический бэкап</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="backupPeriod">Периодичность</label>
+                <select id="backupPeriod" class="form-control">
+                  <option value="daily">Ежедневно</option>
+                  <option value="weekly">Еженедельно</option>
+                  <option value="monthly">Ежемесячно</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="backupService">Сервис</label>
+                <select id="backupService" class="form-control">
+                  <option value="email">Email</option>
+                  <option value="yandex">Яндекс.Диск</option>
+                  <option value="google">Google Drive</option>
+                </select>
+              </div>
+            </div>
+            <div class="backup-section">
+              <h4>Восстановление</h4>
+              <button class="btn btn--outline" id="restoreBackupBtn">📂 Восстановить из файла</button>
+              <input type="file" id="restoreBackupFile" accept=".json" style="display:none">
+            </div>
+            <div class="backup-history">
+              <h4>История бэкапов</h4>
+              <div id="backupHistoryList" class="backup-history-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--primary" id="saveSettingsBtn">Сохранить</button>
+        <button class="btn btn--outline" id="cancelSettingsBtn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно подтверждения -->
+  <div class="modal" id="confirmModal">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content modal__content--sm">
+      <div class="modal__header">
+        <h3 id="confirmTitle">Подтвердите действие</h3>
+      </div>
+      <div class="modal__body">
+        <p id="confirmMessage">Вы уверены?</p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--danger" id="confirmYesBtn">Да</button>
+        <button class="btn btn--outline" id="confirmNoBtn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Скрипты -->
+  <script src="work-schedule.js"></script>
+  <script src="backup.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Регистрация Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
