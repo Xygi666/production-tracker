@@ -1,325 +1,309 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#2c3e50">
-    <meta name="description" content="Учёт произведённой продукции с расчётом зарплаты">
-    <title>Учёт продукции 2</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2c3e50">
+  <meta name="description" content="Учёт произведённой продукции с расчётом зарплаты">
+  <title>Учёт продукции</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
-    <div id="app" class="app">
-        <!-- Шапка приложения -->
-        <header class="header">
-            <div class="header__container">
-                <div class="header__brand">
-                    <h1 class="header__title">📊 Учёт продукции 2</h1>
-                </div>
-                <div class="header__actions">
-                    <button class="btn btn--sm btn--outline" id="settingsBtn">⚙️ Настройки</button>
-                    <button class="btn btn--sm btn--outline" id="exportJsonBtn">💾 Экспорт</button>
-                    <button class="btn btn--sm btn--outline" id="reloadBtn">🔄</button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Навигация -->
-        <nav class="nav">
-            <div class="nav__container">
-                <button class="nav__tab nav__tab--active" data-tab="records">📝 Учёт</button>
-                <button class="nav__tab" data-tab="statistics">📈 Статистика</button>
-                <button class="nav__tab" data-tab="history">📋 История</button>
-            </div>
-        </nav>
-
-        <!-- Основной контент -->
-        <main class="main">
-            <div class="main__container">
-                <!-- Экран Учёт -->
-                <section class="screen screen--active" data-screen="records">
-                    <div class="records">
-                        <div class="record-form">
-                            <div class="form-group">
-                                <label for="productSelect">Продукт</label>
-                                <div class="select-wrapper">
-                                    <select id="productSelect" class="form-control">
-                                        <option value="">Выберите продукт</option>
-                                    </select>
-                                    <div class="select-icon">▼</div>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="quantityInput">Количество</label>
-                                <div class="quantity-control">
-                                    <button type="button" class="btn btn--round" id="decreaseBtn">−</button>
-                                    <input type="number" id="quantityInput" class="form-control" 
-                                           step="0.01" min="0.01" placeholder="0">
-                                    <button type="button" class="btn btn--round" id="increaseBtn">+</button>
-                                </div>
-                            </div>
-
-                            <div class="presets" id="presetsContainer">
-                                <!-- Пресеты будут добавлены динамически -->
-                            </div>
-
-                            <div class="form-group">
-                                <div class="sum-display">
-                                    <span>Сумма: </span>
-                                    <span class="sum-amount" id="sumAmount">0 ₽</span>
-                                </div>
-                            </div>
-
-                            <button type="button" class="btn btn--primary btn--full" id="addRecordBtn">
-                                Добавить запись
-                            </button>
-                        </div>
-
-                        <div class="records-summary">
-                            <div class="summary-cards">
-                                <div class="summary-card">
-                                    <div class="summary-value" id="todayCount">0</div>
-                                    <div class="summary-label">Записей за день</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-value" id="monthSum">0 ₽</div>
-                                    <div class="summary-label">Доход за месяц</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="records-list">
-                            <div class="list-header">
-                                <h3>Записи текущего месяца</h3>
-                                <button class="btn btn--sm btn--outline" id="exportCsvBtn">📊 Экспорт CSV</button>
-                            </div>
-                            <div class="records-items" id="recordsList">
-                                <!-- Записи будут добавлены динамически -->
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Экран Статистика -->
-                <section class="screen" data-screen="statistics">
-                    <div class="statistics">
-                        <h2>Статистика за текущий месяц</h2>
-                        <div class="stats-grid" id="statsGrid">
-                            <!-- Статистические карточки будут добавлены динамически -->
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Экран История -->
-                <section class="screen" data-screen="history">
-                    <div class="history">
-                        <div class="history-header">
-                            <h2>История действий</h2>
-                            <div class="history-filters">
-                                <input type="date" id="filterDate" class="form-control">
-                                <select id="filterAction" class="form-control">
-                                    <option value="">Все действия</option>
-                                    <option value="add_record">Добавление записи</option>
-                                    <option value="delete_record">Удаление записи</option>
-                                    <option value="add_product">Добавление продукта</option>
-                                    <option value="settings">Изменение настроек</option>
-                                </select>
-                                <button class="btn btn--sm btn--outline" id="exportHistoryBtn">📄 Экспорт истории</button>
-                            </div>
-                        </div>
-                        <div class="history-list" id="historyList">
-                            <!-- История будет добавлена динамически -->
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </main>
-    </div>
-
-    <!-- Модальное окно настроек -->
-    <div class="modal" id="settingsModal">
-        <div class="modal__backdrop"></div>
-        <div class="modal__content">
-            <div class="modal__header">
-                <h2>Настройки</h2>
-                <button class="modal__close" id="closeSettingsBtn">×</button>
-            </div>
-            <div class="modal__body">
-                <div class="settings-tabs">
-                    <button class="settings-tab settings-tab--active" data-tab="salary">Зарплата</button>
-                    <button class="settings-tab" data-tab="products">Продукты</button>
-                    <button class="settings-tab" data-tab="general">Общие</button>
-                    <button class="settings-tab" data-tab="backup">Бэкап</button>
-                </div>
-
-                <div class="settings-content">
-                    <!-- Вкладка Зарплата -->
-                    <div class="settings-panel settings-panel--active" data-panel="salary">
-                        <div class="form-group">
-                            <label for="baseSalary">Оклад (₽)</label>
-                            <input type="number" id="baseSalary" class="form-control" min="0" step="100">
-                        </div>
-                        <div class="form-group">
-                            <label for="taxRate">Налог (%)</label>
-                            <input type="number" id="taxRate" class="form-control" min="0" max="100" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label for="advanceAmount">Аванс (₽)</label>
-                            <input type="number" id="advanceAmount" class="form-control" min="0" step="100">
-                        </div>
-                        <div class="form-group">
-                            <label for="workSchedule">График работы</label>
-                            <select id="workSchedule" class="form-control">
-                                <option value="2/2">2 через 2</option>
-                                <option value="5/2">5 через 2</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="hoursPerShift">Часов за смену</label>
-                            <input type="number" id="hoursPerShift" class="form-control" min="1" max="24" step="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label for="scheduleStartDate">Дата начала графика</label>
-                            <input type="date" id="scheduleStartDate" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="normHoursPerMonth">Нормочасы месяца</label>
-                            <input type="number" id="normHoursPerMonth" class="form-control" min="0" step="0.5">
-                        </div>
-                    </div>
-
-                    <!-- Вкладка Продукты -->
-                    <div class="settings-panel" data-panel="products">
-                        <div class="products-header">
-                            <button class="btn btn--primary" id="addProductBtn">Добавить продукт</button>
-                            <button class="btn btn--outline" id="importProductsBtn">Импорт CSV</button>
-                            <input type="file" id="importProductsFile" accept=".csv" style="display:none">
-                        </div>
-                        <div class="products-list" id="productsList">
-                            <!-- Список продуктов будет добавлен динамически -->
-                        </div>
-                    </div>
-
-                    <!-- Вкладка Общие -->
-                    <div class="settings-panel" data-panel="general">
-                        <div class="form-group">
-                            <label for="themeSelect">Тема оформления</label>
-                            <select id="themeSelect" class="form-control">
-                                <option value="classic">Классическая</option>
-                                <option value="dark">Тёмная</option>
-                                <option value="light">Светлая</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="presetsInput">Пресеты количества (через запятую)</label>
-                            <input type="text" id="presetsInput" class="form-control" placeholder="1,5,10,25,50">
-                        </div>
-                        <div class="form-group">
-                            <label>Язык интерфейса</label>
-                            <select class="form-control">
-                                <option value="ru" selected>Русский</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Вкладка Бэкап -->
-                    <div class="settings-panel" data-panel="backup">
-                        <div class="backup-section">
-                            <h4>Ручной бэкап</h4>
-                            <div class="backup-buttons">
-                                <button class="btn btn--outline" id="emailBackupBtn">📧 Email</button>
-                                <button class="btn btn--outline" id="yandexBackupBtn">☁️ Яндекс.Диск</button>
-                                <button class="btn btn--outline" id="googleBackupBtn">📁 Google Drive</button>
-                            </div>
-                        </div>
-
-                        <div class="backup-section">
-                            <h4>Автоматический бэкап</h4>
-                            <div class="form-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="autoBackupEnabled">
-                                    <span>Включить автоматический бэкап</span>
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label for="backupPeriod">Периодичность</label>
-                                <select id="backupPeriod" class="form-control">
-                                    <option value="daily">Ежедневно</option>
-                                    <option value="weekly">Еженедельно</option>
-                                    <option value="monthly">Ежемесячно</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="backupService">Сервис</label>
-                                <select id="backupService" class="form-control">
-                                    <option value="email">Email</option>
-                                    <option value="yandex">Яндекс.Диск</option>
-                                    <option value="google">Google Drive</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="backup-section">
-                            <h4>Восстановление</h4>
-                            <button class="btn btn--outline" id="restoreBackupBtn">📂 Восстановить из файла</button>
-                            <input type="file" id="restoreBackupFile" accept=".json" style="display:none">
-                        </div>
-
-                        <div class="backup-history">
-                            <h4>История бэкапов</h4>
-                            <div id="backupHistoryList" class="backup-history-list">
-                                <!-- История бэкапов будет добавлена динамически -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal__footer">
-                <button class="btn btn--primary" id="saveSettingsBtn">Сохранить</button>
-                <button class="btn btn--outline" id="cancelSettingsBtn">Отмена</button>
-            </div>
+  <div id="app" class="app">
+    <!-- Шапка приложения -->
+    <header class="header">
+      <div class="header__container">
+        <div class="header__brand">
+          <h1 class="header__title">📊 Учёт продукции</h1>
+          <!-- Доход за месяц в шапке -->
+          <div class="header__subtitle">
+            Доход за месяц: <span id="monthSumHeader">0 ₽</span>
+          </div>
         </div>
-    </div>
-
-    <!-- Модальное окно подтверждения -->
-    <div class="modal" id="confirmModal">
-        <div class="modal__backdrop"></div>
-        <div class="modal__content modal__content--sm">
-            <div class="modal__header">
-                <h3 id="confirmTitle">Подтвердите действие</h3>
-            </div>
-            <div class="modal__body">
-                <p id="confirmMessage">Вы уверены, что хотите выполнить это действие?</p>
-            </div>
-            <div class="modal__footer">
-                <button class="btn btn--danger" id="confirmYesBtn">Да</button>
-                <button class="btn btn--outline" id="confirmNoBtn">Отмена</button>
-            </div>
+        <div class="header__actions">
+          <button class="btn btn--sm btn--outline" id="settingsBtn">⚙️ Настройки</button>
+          <button class="btn btn--sm btn--outline" id="exportJsonBtn">💾 Экспорт</button>
+          <button class="btn btn--sm btn--outline" id="reloadBtn">🔄</button>
         </div>
+      </div>
+    </header>
+
+    <!-- Навигация -->
+    <nav class="nav">
+      <div class="nav__container">
+        <button class="nav__tab nav__tab--active" data-tab="records">📝 Учёт</button>
+        <button class="nav__tab" data-tab="statistics">📈 Статистика</button>
+        <button class="nav__tab" data-tab="history">📋 История</button>
+      </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main">
+      <div class="main__container">
+        <!-- Экран Учёт -->
+        <section class="screen screen--active" data-screen="records">
+          <div class="records">
+
+            <!-- Форма учёта продукции -->
+            <div class="record-form">
+              <div class="form-group">
+                <label for="productSelect">Продукт</label>
+                <div class="select-wrapper">
+                  <select id="productSelect" class="form-control">
+                    <option value="">Выберите продукт</option>
+                  </select>
+                  <div class="select-icon">▼</div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="quantityInput">Количество</label>
+                <div class="quantity-control">
+                  <button type="button" class="btn btn--round" id="decreaseBtn">−</button>
+                  <input type="number" id="quantityInput" class="form-control"
+                         step="0.01" min="0.01" placeholder="0">
+                  <button type="button" class="btn btn--round" id="increaseBtn">+</button>
+                </div>
+              </div>
+
+              <div class="presets" id="presetsContainer"></div>
+
+              <div class="form-group">
+                <div class="sum-display">
+                  <span>Сумма: </span>
+                  <span class="sum-amount" id="sumAmount">0 ₽</span>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn--primary btn--full" id="addRecordBtn">
+                Добавить запись
+              </button>
+            </div>
+
+            <!-- Упрощённая форма ручной смены прямо под учётом -->
+            <div class="shift-form">
+              <h3 class="section-title">Ручная смена</h3>
+              <div class="form-inline">
+                <input type="number" id="manualShiftHours" class="form-control" min="0.5" step="0.5" placeholder="Часы">
+                <button class="btn btn--outline" id="addManualShiftBtn">Добавить смену</button>
+              </div>
+              <small class="text-muted">Добавляет часы в текущий месяц.</small>
+            </div>
+
+            <!-- Список записей текущего месяца -->
+            <div class="records-list">
+              <div class="list-header">
+                <h3>Записи текущего месяца</h3>
+                <button class="btn btn--sm btn--outline" id="exportCsvBtn">📊 Экспорт CSV</button>
+              </div>
+              <div class="records-items" id="recordsList"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Экран Статистика -->
+        <section class="screen" data-screen="statistics">
+          <div class="statistics">
+            <h2>Статистика за текущий месяц</h2>
+            <div class="stats-grid" id="statsGrid"></div>
+          </div>
+        </section>
+
+        <!-- Экран История -->
+        <section class="screen" data-screen="history">
+          <div class="history">
+            <div class="history-header">
+              <h2>История действий</h2>
+              <div class="history-filters">
+                <input type="date" id="filterDate" class="form-control">
+                <select id="filterAction" class="form-control">
+                  <option value="">Все действия</option>
+                  <option value="add_record">Добавление записи</option>
+                  <option value="delete_record">Удаление записи</option>
+                  <option value="add_product">Добавление продукта</option>
+                  <option value="settings">Изменение настроек</option>
+                  <option value="add_shift">Добавление смены</option>
+                </select>
+                <button class="btn btn--sm btn--outline" id="exportHistoryBtn">📄 Экспорт истории</button>
+              </div>
+            </div>
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Модальное окно настроек -->
+  <div class="modal" id="settingsModal">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2>Настройки</h2>
+        <button class="modal__close" id="closeSettingsBtn">×</button>
+      </div>
+      <div class="modal__body">
+        <div class="settings-tabs">
+          <button class="settings-tab settings-tab--active" data-tab="salary">Зарплата</button>
+          <button class="settings-tab" data-tab="products">Продукты</button>
+          <button class="settings-tab" data-tab="general">Общие</button>
+          <button class="settings-tab" data-tab="backup">Бэкап</button>
+        </div>
+
+        <div class="settings-content">
+          <!-- Зарплата -->
+          <div class="settings-panel settings-panel--active" data-panel="salary">
+            <div class="form-group">
+              <label for="baseSalary">Оклад (₽)</label>
+              <input type="number" id="baseSalary" class="form-control" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label for="taxRate">Налог (%)</label>
+              <input type="number" id="taxRate" class="form-control" min="0" max="100" step="0.1">
+            </div>
+            <div class="form-group">
+              <label for="advanceAmount">Аванс (₽)</label>
+              <input type="number" id="advanceAmount" class="form-control" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label for="workSchedule">Авто‑график (необязательно)</label>
+              <select id="workSchedule" class="form-control">
+                <option value="off">Выключен</option>
+                <option value="2/2">2 через 2</option>
+                <option value="5/2">5 через 2</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="hoursPerShift">Часов за смену (для авто‑графика)</label>
+              <input type="number" id="hoursPerShift" class="form-control" min="1" max="24" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="scheduleStartDate">Дата начала графика</label>
+              <input type="date" id="scheduleStartDate" class="form-control">
+            </div>
+            <!-- Нормочасы скрыты — больше не используются -->
+          </div>
+
+          <!-- Продукты -->
+          <div class="settings-panel" data-panel="products">
+            <div class="products-header">
+              <button class="btn btn--primary" id="addProductBtn">Добавить продукт</button>
+              <button class="btn btn--outline" id="importProductsBtn">Импорт CSV</button>
+              <input type="file" id="importProductsFile" accept=".csv" style="display:none">
+            </div>
+            <div class="products-list" id="productsList"></div>
+          </div>
+
+          <!-- Общие -->
+          <div class="settings-panel" data-panel="general">
+            <div class="form-group">
+              <label for="themeSelect">Тема оформления</label>
+              <select id="themeSelect" class="form-control">
+                <option value="classic">Классическая</option>
+                <option value="dark">Тёмная</option>
+                <option value="light">Светлая</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="presetsInput">Пресеты количества (через запятую)</label>
+              <input type="text" id="presetsInput" class="form-control" placeholder="1,5,10,25,50">
+            </div>
+            <div class="form-group">
+              <label>Язык интерфейса</label>
+              <select class="form-control">
+                <option value="ru" selected>Русский</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Бэкап -->
+          <div class="settings-panel" data-panel="backup">
+            <div class="backup-section">
+              <h4>Ручной бэкап</h4>
+              <div class="backup-buttons">
+                <button class="btn btn--outline" id="emailBackupBtn">📧 Email</button>
+                <button class="btn btn--outline" id="yandexBackupBtn">☁️ Яндекс.Диск</button>
+                <button class="btn btn--outline" id="googleBackupBtn">📁 Google Drive</button>
+              </div>
+            </div>
+            <div class="backup-section">
+              <h4>Автоматический бэкап</h4>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="autoBackupEnabled">
+                  <span>Включить автоматический бэкап</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="backupPeriod">Периодичность</label>
+                <select id="backupPeriod" class="form-control">
+                  <option value="daily">Ежедневно</option>
+                  <option value="weekly">Еженедельно</option>
+                  <option value="monthly">Ежемесячно</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="backupService">Сервис</label>
+                <select id="backupService" class="form-control">
+                  <option value="email">Email</option>
+                  <option value="yandex">Яндекс.Диск</option>
+                  <option value="google">Google Drive</option>
+                </select>
+              </div>
+            </div>
+            <div class="backup-section">
+              <h4>Восстановление</h4>
+              <button class="btn btn--outline" id="restoreBackupBtn">📂 Восстановить из файла</button>
+              <input type="file" id="restoreBackupFile" accept=".json" style="display:none">
+            </div>
+            <div class="backup-history">
+              <h4>История бэкапов</h4>
+              <div id="backupHistoryList" class="backup-history-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--primary" id="saveSettingsBtn">Сохранить</button>
+        <button class="btn btn--outline" id="cancelSettingsBtn">Отмена</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Скрипты -->
-    <script src="work-schedule.js"></script>
-    <script src="backup.js"></script>
-    <script src="app.js"></script>
+  <!-- Модальное окно подтверждения (упрощённо) -->
+  <div class="modal" id="confirmModal">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content modal__content--sm">
+      <div class="modal__header">
+        <h3 id="confirmTitle">Подтвердите действие</h3>
+      </div>
+      <div class="modal__body">
+        <p id="confirmMessage">Вы уверены?</p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--danger" id="confirmYesBtn">Да</button>
+        <button class="btn btn--outline" id="confirmNoBtn">Отмена</button>
+      </div>
+    </div>
+  </div>
 
-    <!-- Регистрация Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(function(registration) {
-                        console.log('SW registered: ', registration);
-                    }, function(registrationError) {
-                        console.log('SW registration failed: ', registrationError);
-                    });
-            });
-        }
-    </script>
+  <!-- Скрипты -->
+  <script src="work-schedule.js"></script>
+  <script src="backup.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Регистрация Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
