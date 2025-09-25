@@ -4,7 +4,7 @@
  * Обеспечивает кэширование статических ресурсов и офлайн работу
  */
 
-const CACHE_NAME = 'uchet2-cache-v3.0.0';
+const CACHE_NAME = 'uchet2-cache-v3.0.2';
 const STATIC_CACHE_URLS = [
     './',
     './index.html',
