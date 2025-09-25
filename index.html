@@ -43,7 +43,6 @@
         <!-- Экран: Учёт -->
         <section class="screen screen--active" data-screen="records">
 
-          <!-- Одна строка: поиск + выбор продукта -->
           <div class="form-group">
             <label for="productSearch">Продукт</label>
             <div class="product-search">
@@ -52,7 +51,6 @@
             </div>
           </div>
 
-          <!-- Количество с шагом 1 -->
           <div class="form-group">
             <label for="quantityInput">Количество (шт.)</label>
             <div class="quantity-control">
@@ -62,10 +60,8 @@
             </div>
           </div>
 
-          <!-- Пресеты количества -->
           <div class="presets" id="presetsContainer"></div>
 
-          <!-- Сумма -->
           <div class="form-group">
             <div class="sum-display">
               <span>Сумма: </span>
@@ -73,10 +69,8 @@
             </div>
           </div>
 
-          <!-- Добавить запись -->
           <button class="btn btn--primary btn--full" id="addRecordBtn">Добавить запись</button>
 
-          <!-- Ручная смена -->
           <div class="shift-form">
             <h3 class="section-title">Ручная смена</h3>
             <div class="form-inline">
@@ -86,7 +80,6 @@
             <small class="text-muted">Добавляет часы в текущий месяц.</small>
           </div>
 
-          <!-- Список записей месяца -->
           <div class="records-list">
             <div class="list-header">
               <h3>Записи текущего месяца</h3>
@@ -128,7 +121,6 @@
 
   </div>
 
-  <!-- Модалка настроек -->
   <div class="modal" id="settingsModal">
     <div class="modal__backdrop"></div>
     <div class="modal__content">
@@ -145,7 +137,6 @@
         </div>
 
         <div class="settings-content">
-          <!-- Зарплата -->
           <div class="settings-panel settings-panel--active" data-panel="salary">
             <div class="form-group">
               <label for="baseSalary">Оклад (₽)</label>
@@ -177,7 +168,6 @@
             </div>
           </div>
 
-          <!-- Продукты -->
           <div class="settings-panel" data-panel="products">
             <div class="products-header">
               <button class="btn btn--primary" id="addProductBtn">Добавить продукт</button>
@@ -187,7 +177,6 @@
             <div id="productsList" class="products-list"></div>
           </div>
 
-          <!-- Общие -->
           <div class="settings-panel" data-panel="general">
             <div class="form-group">
               <label for="themeSelect">Тема оформления</label>
@@ -203,7 +192,6 @@
             </div>
           </div>
 
-          <!-- Бэкап -->
           <div class="settings-panel" data-panel="backup">
             <div class="backup-section">
               <h4>Ручной бэкап</h4>
