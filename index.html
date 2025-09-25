@@ -47,24 +47,24 @@
         <section class="screen screen--active" data-screen="records">
           <div class="records">
 
+            <!-- Выбор продукта + поиск (одна строка) -->
+            <div class="form-group">
+              <label for="productSearch">Продукт</label>
+              <div class="product-search">
+                <input type="text" id="productSearch" class="form-control"
+                       placeholder="Начните вводить название (например, хлеб)">
+                <div id="productSuggestions" class="suggestions hidden"></div>
+              </div>
+            </div>
+
             <!-- Форма учёта продукции -->
             <div class="record-form">
               <div class="form-group">
-                <label for="productSelect">Продукт</label>
-                <div class="select-wrapper">
-                  <select id="productSelect" class="form-control">
-                    <option value="">Выберите продукт</option>
-                  </select>
-                  <div class="select-icon">▼</div>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="quantityInput">Количество</label>
+                <label for="quantityInput">Количество (шт.)</label>
                 <div class="quantity-control">
                   <button type="button" class="btn btn--round" id="decreaseBtn">−</button>
                   <input type="number" id="quantityInput" class="form-control"
-                         step="0.01" min="0.01" placeholder="0">
+                         step="1" min="1" inputmode="numeric" pattern="[0-9]*" placeholder="1">
                   <button type="button" class="btn btn--round" id="increaseBtn">+</button>
                 </div>
               </div>
