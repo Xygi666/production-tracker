@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uchet2-cache-v3.2.0';
+const CACHE_NAME = 'uchet2-cache-v3.2.1';
 const STATIC_CACHE_URLS = [
   './','./index.html','./styles.css','./app.js','./backup.js','./work-schedule.js','./manifest.json','./icon-192.png','./icon-512.png'
 ];
