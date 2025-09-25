@@ -1,5 +1,5 @@
 const CONFIG = {
-  VERSION: '3.1.2',
+  VERSION: '3.2.0',
   STORAGE_KEYS: {
     PRODUCTS: 'pt_products_v3',
     ENTRIES: 'pt_entries_v3',
@@ -46,12 +46,10 @@ class App {
     this.applyTheme(this.data.theme);
     this.renderProducts();
     this.renderPresets();
+    this.applyManualDefaultHours();
     this.renderRecords();
     this.renderStatistics();
     this.renderHistory();
-
-    // ВАЖНО: автоподстановка часов из hoursPerShift при старте
-    this.applyManualDefaultHours();
   }
 
   initDOM() {
@@ -65,8 +63,12 @@ class App {
     this.exportJsonBtn=document.getElementById('exportJsonBtn');
     this.reloadBtn=document.getElementById('reloadBtn');
 
+    // Поиск/выбор продукта
+    this.productSearch=document.getElementById('productSearch');
+    this.productSuggestions=document.getElementById('productSuggestions');
+    this.selectedProductId=null;
+
     // Учёт
-    this.productSelect=document.getElementById('productSelect');
     this.quantityInput=document.getElementById('quantityInput');
     this.decreaseBtn=document.getElementById('decreaseBtn');
     this.increaseBtn=document.getElementById('increaseBtn');
@@ -115,16 +117,43 @@ class App {
   }
 
   bindEvents() {
+    // Навигация
     this.navTabs.forEach(t=>t.addEventListener('click',(e)=>this.switchScreen(e.currentTarget.dataset.tab)));
+
+    // Шапка
     this.settingsBtn?.addEventListener('click',()=>this.openSettings());
     this.exportJsonBtn?.addEventListener('click',()=>this.exportJson());
     this.reloadBtn?.addEventListener('click',()=>location.reload());
 
-    // Учёт
-    this.productSelect?.addEventListener('change',()=>this.calculateSum());
-    this.quantityInput?.addEventListener('input',()=>this.calculateSum());
-    this.decreaseBtn?.addEventListener('click',()=>{const c=parseFloat(this.quantityInput.value)||0;const s=parseFloat(this.quantityInput.step)||1;const m=parseFloat(this.quantityInput.min)||0.01;this.quantityInput.value=Math.max(m,c-s);this.calculateSum();});
-    this.increaseBtn?.addEventListener('click',()=>{const c=parseFloat(this.quantityInput.value)||0;const s=parseFloat(this.quantityInput.step)||1;this.quantityInput.value=c+s;this.calculateSum();});
+    // Поиск/выбор продукта
+    this.productSearch?.addEventListener('input',()=>this.updateProductSuggestions());
+    this.productSearch?.addEventListener('focus',()=>this.updateProductSuggestions());
+    document.addEventListener('click',(e)=>{
+      if (!this.productSuggestions.contains(e.target) && e.target!==this.productSearch){
+        this.hideSuggestions();
+      }
+    });
+
+    // Учёт — шаг 1 шт.
+    this.quantityInput?.setAttribute('step','1');
+    this.quantityInput?.setAttribute('min','1');
+    this.quantityInput?.addEventListener('input',()=>{
+      const v = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      this.quantityInput.value = v;
+      this.calculateSum();
+    });
+    this.decreaseBtn?.addEventListener('click',()=>{
+      const cur = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      const next = Math.max(1, cur - 1);
+      this.quantityInput.value = next;
+      this.calculateSum();
+    });
+    this.increaseBtn?.addEventListener('click',()=>{
+      const cur = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      const next = cur + 1;
+      this.quantityInput.value = next;
+      this.calculateSum();
+    });
     this.addRecordBtn?.addEventListener('click',()=>this.addRecord());
     this.exportCsvBtn?.addEventListener('click',()=>this.exportCsv());
 
@@ -142,13 +171,18 @@ class App {
     this.saveSettingsBtn?.addEventListener('click',()=>this.saveSettings());
     this.settingsTabs?.forEach(t=>t.addEventListener('click',(e)=>this.switchSettingsPanel(e.currentTarget.dataset.tab)));
     this.settingsModal?.addEventListener('click',(e)=>{ if(e.target===this.settingsModal||e.target.classList.contains('modal__backdrop')) this.closeSettings(); });
+
+    // Продукты
+    this.addProductBtn?.addEventListener('click',()=>this.addProductViaPrompts());
+    this.importProductsBtn?.addEventListener('click',()=>this.importProductsFile.click());
+    this.importProductsFile?.addEventListener('change',(e)=>this.importProducts(e.target.files[0]));
   }
 
   // Нав/экраны
   switchScreen(name){
     this.navTabs.forEach(t=>t.classList.toggle('nav__tab--active',t.dataset.tab===name));
     this.screens.forEach(s=>s.classList.toggle('screen--active',s.dataset.screen===name));
-    if(name==='records'){ this.renderRecords(); this.applyManualDefaultHours(); }
+    if(name==='records'){ this.renderRecords(); this.applyManualDefaultHours(); this.productSearch?.focus(); }
     if(name==='statistics'){ this.renderStatistics(); }
     if(name==='history'){ this.renderHistory(); }
   }
@@ -158,7 +192,48 @@ class App {
   }
   applyTheme(theme){ document.body.dataset.theme=theme; SafeStorage.setRaw(CONFIG.STORAGE_KEYS.THEME,theme); }
 
-  // Автоподстановка часов из hoursPerShift
+  // Поиск/выбор продукта
+  updateProductSuggestions(){
+    if (!this.productSearch) return;
+    const q = this.productSearch.value.trim().toLowerCase();
+    const all = (this.data.products||[]).filter(p=>!p.archived);
+    const list = q ? all.filter(p=>p.name.toLowerCase().includes(q)) : all;
+    this.renderSuggestions(list.slice(0,20));
+  }
+  renderSuggestions(items){
+    if (!this.productSuggestions) return;
+    if (!items.length){
+      this.productSuggestions.innerHTML = '';
+      this.productSuggestions.classList.add('hidden');
+      this.selectedProductId = null;
+      this.calculateSum();
+      return;
+    }
+    this.productSuggestions.classList.remove('hidden');
+    this.productSuggestions.innerHTML = '';
+    items.forEach(p=>{
+      const row = document.createElement('div');
+      row.className = 'suggestion-item';
+      row.textContent = `${p.name} — ${p.price}${CONFIG.DEFAULT_CURRENCY}`;
+      row.addEventListener('click', ()=>{
+        this.productSearch.value = p.name;
+        this.selectedProductId = p.id;
+        this.hideSuggestions();
+        this.calculateSum();
+      });
+      this.productSuggestions.appendChild(row);
+    });
+    // Если точное совпадение — фиксируем выбранный товар
+    const exact = items.find(p=>p.name.toLowerCase()===this.productSearch.value.trim().toLowerCase());
+    this.selectedProductId = exact ? exact.id : null;
+  }
+  hideSuggestions(){
+    if (this.productSuggestions){
+      this.productSuggestions.classList.add('hidden');
+    }
+  }
+
+  // Автозаполнение часов смены
   applyManualDefaultHours(){
     if(!this.manualShiftHours) return;
     const defaultHours = this.data.salary?.hoursPerShift ?? 8;
@@ -167,46 +242,59 @@ class App {
 
   // Учёт
   renderProducts(){
-    if(this.productSelect){
-      this.productSelect.innerHTML='<option value="">Выберите продукт</option>';
-      (this.data.products||[]).filter(p=>!p.archived).forEach(p=>{
-        const o=document.createElement('option'); o.value=p.id; o.textContent=`${p.name} - ${p.price}${CONFIG.DEFAULT_CURRENCY}`; this.productSelect.appendChild(o);
-      });
-    }
-    if(this.productsList){
-      this.productsList.innerHTML='';
-      (this.data.products||[]).forEach(p=>{
-        const row=document.createElement('div'); row.className='product-item';
-        row.innerHTML=`<div class="product-info"><div class="product-name">${this.escape(p.name)}</div><div class="product-price">${p.price}${CONFIG.DEFAULT_CURRENCY}</div></div><div class="product-actions"><button class="btn btn--sm btn--outline" data-a="edit">Изменить</button><button class="btn btn--sm btn--outline" data-a="toggle">${p.archived?'Восстановить':'Архив'}</button><button class="btn btn--sm btn--danger" data-a="del">Удалить</button></div>`;
-        row.querySelector('[data-a="edit"]').addEventListener('click',()=>this.editProductViaPrompts(p.id));
-        row.querySelector('[data-a="toggle"]').addEventListener('click',()=>this.toggleArchiveProduct(p.id));
-        row.querySelector('[data-a="del"]').addEventListener('click',()=>this.deleteProduct(p.id));
-        this.productsList.appendChild(row);
-      });
-    }
+    // ничего не рисуем в селект — выбор через поиск
+    // но убедимся, что подсказки актуальны
+    this.updateProductSuggestions();
   }
   renderPresets(){
     if(!this.presetsContainer) return;
     this.presetsContainer.innerHTML='';
     (this.data.presets||[]).forEach(v=>{
       const b=document.createElement('button'); b.className='preset-btn'; b.textContent=v;
-      b.addEventListener('click',()=>{this.quantityInput.value=v; this.calculateSum();});
+      b.addEventListener('click',()=>{
+        const base = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||0));
+        this.quantityInput.value = base + Number(v);
+        this.calculateSum();
+      });
       this.presetsContainer.appendChild(b);
     });
   }
+  currentProduct(){
+    if (this.selectedProductId){
+      return (this.data.products||[]).find(p=>p.id===this.selectedProductId) || null;
+    }
+    // попытка по имени если нет id
+    const q = (this.productSearch?.value||'').trim().toLowerCase();
+    if (!q) return null;
+    return (this.data.products||[]).find(p=>!p.archived && p.name.toLowerCase()===q) || null;
+  }
   calculateSum(){
-    const pid=parseInt(this.productSelect?.value); const qty=parseFloat(this.quantityInput?.value)||0;
-    if(pid&&qty>0){ const p=(this.data.products||[]).find(x=>x.id===pid); if(p){ this.sumAmount.textContent=`${(qty*p.price).toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`; return; } }
-    this.sumAmount.textContent=`0 ${CONFIG.DEFAULT_CURRENCY}`;
+    const p = this.currentProduct();
+    const qty = Math.max(1, Math.floor(parseFloat(this.quantityInput?.value)||1));
+    if (p){
+      const sum = qty * p.price;
+      this.sumAmount.textContent = `${sum.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
+    } else {
+      this.sumAmount.textContent = `0 ${CONFIG.DEFAULT_CURRENCY}`;
+    }
   }
   addRecord(){
-    const pid=parseInt(this.productSelect?.value); const qty=parseFloat(this.quantityInput?.value);
-    if(!pid) return alert('Выберите продукт'); if(!qty||qty<=0) return alert('Введите корректное количество');
-    const p=(this.data.products||[]).find(x=>x.id===pid); if(!p) return alert('Продукт не найден');
-    const rec={id:Date.now(),productId:pid,quantity:qty,price:p.price,sum:qty*p.price,date:new Date().toISOString()};
-    (this.data.entries=this.data.entries||[]).push(rec); this.log('add_record',rec,'Добавлена запись'); this.saveAll();
-    this.quantityInput.value=''; this.productSelect.value=''; this.calculateSum(); this.renderRecords(); this.renderStatistics();
+    const p = this.currentProduct();
+    const qty = Math.max(1, Math.floor(parseFloat(this.quantityInput?.value)||1));
+    if (!p) return alert('Выберите продукт (начните вводить и выберите из списка)');
+    if (!qty || qty<=0) return alert('Введите корректное количество');
+
+    const rec={id:Date.now(),productId:p.id,quantity:qty,price:p.price,sum:qty*p.price,date:new Date().toISOString()};
+    (this.data.entries=this.data.entries||[]).push(rec);
+    this.log('add_record',rec,'Добавлена запись');
+    this.saveAll();
+
+    this.quantityInput.value='1';
+    this.calculateSum();
+    this.renderRecords();
+    this.renderStatistics();
   }
+
   renderRecords(){
     if(!this.recordsList) return;
     const now=new Date(); const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -223,7 +311,14 @@ class App {
     });
   }
   deleteRecord(id){
-    if(!confirm('Удалить запись?')) return; const idx=(this.data.entries||[]).findIndex(r=>r.id===id); if(idx>=0){ const rec=this.data.entries[idx]; this.data.entries.splice(idx,1); this.log('delete_record',rec,'Удалена запись'); this.saveAll(); this.renderRecords(); this.renderStatistics(); }
+    if(!confirm('Удалить запись?')) return;
+    const idx=(this.data.entries||[]).findIndex(r=>r.id===id);
+    if(idx>=0){
+      const rec=this.data.entries[idx];
+      this.data.entries.splice(idx,1);
+      this.log('delete_record',rec,'Удалена запись');
+      this.saveAll(); this.renderRecords(); this.renderStatistics();
+    }
   }
 
   // Ручная смена
@@ -232,7 +327,6 @@ class App {
     if(!h||h<=0) return alert('Введите часы (>0)');
     const shift={id:Date.now(),date:new Date().toISOString().slice(0,10),hours:h,type:'work',comment:'',auto:false};
     (this.data.shifts=this.data.shifts||[]).push(shift); this.log('add_shift',shift,`Добавлена смена: ${h} ч`); this.saveAll();
-    // После добавления снова подставим дефолт из настроек
     this.applyManualDefaultHours();
     this.renderStatistics();
   }
@@ -244,7 +338,6 @@ class App {
     const monthEntries=(this.data.entries||[]).filter(e=>{const d=new Date(e.date);return d.getFullYear()===y && (d.getMonth()+1)===m;});
     const income=monthEntries.reduce((s,r)=>s+r.sum,0);
 
-    // Факт часы = ручные + (опционально) авто
     const manualHours=(this.data.shifts||[]).filter(s=>{const d=new Date(s.date);return d.getFullYear()===y && (d.getMonth()+1)===m && !s.auto;}).reduce((s,sh)=>s+(parseFloat(sh.hours)||0),0);
     let autoHours=0;
     if(this.data.salary.workSchedule!=='off' && typeof WorkScheduleManager==='function'){
@@ -301,16 +394,15 @@ class App {
     const presets=(this.presetsInput.value||'').split(',').map(x=>parseFloat(x.trim())).filter(x=>!isNaN(x)&&x>0);
     this.data.presets=presets.length?presets:[1,5,10,25,50];
     this.log('settings',this.data.salary,'Изменены настройки'); this.saveAll(); this.closeSettings();
-    // После сохранения настроек снова подставим дефолтные часы
     this.applyManualDefaultHours();
     this.renderPresets(); this.renderStatistics();
   }
 
   // Продукты (минимально через prompt)
-  addProductViaPrompts(){ const n=prompt('Название продукта:'); if(!n) return; const pr=parseFloat(prompt('Цена:')); if(isNaN(pr)||pr<=0) return alert('Некорректная цена'); const p={id:Date.now(),name:n.trim(),price:pr,archived:false,created:new Date().toISOString()}; (this.data.products=this.data.products||[]).push(p); this.log('add_product',p,'Добавлен продукт'); this.saveAll(); this.renderProducts(); }
-  editProductViaPrompts(id){ const p=(this.data.products||[]).find(x=>x.id===id); if(!p) return; const n=prompt('Название:',p.name); if(!n) return; const pr=parseFloat(prompt('Цена:',p.price)); if(isNaN(pr)||pr<=0) return alert('Некорректная цена'); p.name=n.trim(); p.price=pr; this.log('edit_product',p,'Изменён продукт'); this.saveAll(); this.renderProducts(); }
-  toggleArchiveProduct(id){ const p=(this.data.products||[]).find(x=>x.id===id); if(!p) return; p.archived=!p.archived; this.log('edit_product',p,p.archived?'Архивирован продукт':'Восстановлен продукт'); this.saveAll(); this.renderProducts(); }
-  deleteProduct(id){ if((this.data.entries||[]).some(e=>e.productId===id)) return alert('Нельзя удалить продукт с записями. Переведите в архив.'); if(!confirm('Удалить продукт?')) return; const i=(this.data.products||[]).findIndex(p=>p.id===id); if(i>=0){ const old=this.data.products[i]; this.data.products.splice(i,1); this.log('delete_product',old,'Удалён продукт'); this.saveAll(); this.renderProducts(); } }
+  addProductViaPrompts(){ const n=prompt('Название продукта:'); if(!n) return; const pr=parseFloat(prompt('Цена:')); if(isNaN(pr)||pr<=0) return alert('Некорректная цена'); const p={id:Date.now(),name:n.trim(),price:pr,archived:false,created:new Date().toISOString()}; (this.data.products=this.data.products||[]).push(p); this.log('add_product',p,'Добавлен продукт'); this.saveAll(); this.updateProductSuggestions(); }
+  editProductViaPrompts(id){ const p=(this.data.products||[]).find(x=>x.id===id); if(!p) return; const n=prompt('Название:',p.name); if(!n) return; const pr=parseFloat(prompt('Цена:',p.price)); if(isNaN(pr)||pr<=0) return alert('Некорректная цена'); p.name=n.trim(); p.price=pr; this.log('edit_product',p,'Изменён продукт'); this.saveAll(); this.updateProductSuggestions(); }
+  toggleArchiveProduct(id){ const p=(this.data.products||[]).find(x=>x.id===id); if(!p) return; p.archived=!p.archived; this.log('edit_product',p,p.archived?'Архивирован продукт':'Восстановлен продукт'); this.saveAll(); this.updateProductSuggestions(); }
+  deleteProduct(id){ if((this.data.entries||[]).some(e=>e.productId===id)) return alert('Нельзя удалить продукт с записями. Переведите в архив.'); if(!confirm('Удалить продукт?')) return; const i=(this.data.products||[]).findIndex(p=>p.id===id); if(i>=0){ const old=this.data.products[i]; this.data.products.splice(i,1); this.log('delete_product',old,'Удалён продукт'); this.saveAll(); this.updateProductSuggestions(); } }
 
   // История/Экспорт/Импорт/Утилиты
   renderHistory(){ if(!this.historyList) return; const df=this.filterDate?.value; const af=this.filterAction?.value; let list=[...(this.data.log||[])]; if(df) list=list.filter(e=>new Date(e.timestamp).toISOString().slice(0,10)===df); if(af) list=list.filter(e=>e.action===af); list.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)); this.historyList.innerHTML=list.length?'':`<div class="text-center" style="padding:40px;color:var(--text-secondary);">История действий пуста</div>`; list.forEach(e=>{ const d=new Date(e.timestamp); const item=document.createElement('div'); item.className='history-item'; item.innerHTML=`<div class="history-header-item"><div class="history-action">${this.actionName(e.action)}</div><div class="history-time">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div></div><div class="history-details">${this.escape(e.details||'')}</div>`; this.historyList.appendChild(item); }); }
