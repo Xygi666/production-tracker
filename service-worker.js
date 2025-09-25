@@ -1,5 +1,5 @@
 // Поднимите версию при каждом релизе
-const CACHE_NAME = 'uchet2-cache-v3.2.1';
+const CACHE_NAME = 'uchet2-cache-v3.2.2';
 const ASSETS = [
   './',
   './index.html',
