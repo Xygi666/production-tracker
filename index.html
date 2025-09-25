@@ -19,7 +19,6 @@
       <div class="header__container">
         <div class="header__brand">
           <h1 class="header__title">📊 Учёт продукции</h1>
-          <!-- Доход за месяц в шапке -->
           <div class="header__subtitle">
             Доход за месяц: <span id="monthSumHeader">0 ₽</span>
           </div>
@@ -84,7 +83,7 @@
               </button>
             </div>
 
-            <!-- Упрощённая форма ручной смены прямо под учётом -->
+            <!-- Упрощённая форма ручной смены под учётом -->
             <div class="shift-form">
               <h3 class="section-title">Ручная смена</h3>
               <div class="form-inline">
@@ -183,10 +182,13 @@
               <input type="number" id="hoursPerShift" class="form-control" min="1" max="24" step="0.5">
             </div>
             <div class="form-group">
+              <label for="manualDefaultHours">Часы по умолчанию (ручная смена)</label>
+              <input type="number" id="manualDefaultHours" class="form-control" min="0.5" step="0.5" placeholder="например, 12">
+            </div>
+            <div class="form-group">
               <label for="scheduleStartDate">Дата начала графика</label>
               <input type="date" id="scheduleStartDate" class="form-control">
             </div>
-            <!-- Нормочасы скрыты — больше не используются -->
           </div>
 
           <!-- Продукты -->
@@ -275,7 +277,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно подтверждения (упрощённо) -->
+  <!-- Модальное окно подтверждения -->
   <div class="modal" id="confirmModal">
     <div class="modal__backdrop"></div>
     <div class="modal__content modal__content--sm">
