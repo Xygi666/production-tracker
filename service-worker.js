@@ -1,10 +1,14 @@
-const CACHE_NAME = 'uchet2-cache-v3.1.2';
+const CACHE_NAME = 'uchet2-cache-v3.2.0';
 const STATIC_CACHE_URLS = [
   './','./index.html','./styles.css','./app.js','./backup.js','./work-schedule.js','./manifest.json','./icon-192.png','./icon-512.png'
 ];
 
-self.addEventListener('install',(e)=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC_CACHE_URLS)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',(e)=>{e.waitUntil(caches.keys().then(names=>Promise.all(names.map(n=>n!==CACHE_NAME?caches.delete(n):undefined))).then(()=>self.clients.claim()))});
+self.addEventListener('install',(e)=>{
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC_CACHE_URLS)).then(()=>self.skipWaiting()))
+});
+self.addEventListener('activate',(e)=>{
+  e.waitUntil(caches.keys().then(names=>Promise.all(names.map(n=>n!==CACHE_NAME?caches.delete(n):undefined))).then(()=>self.clients.claim()))
+});
 self.addEventListener('fetch',(event)=>{
   const req=event.request; if(req.method!=='GET'||!req.url.startsWith('http'))return;
   if(req.destination==='document'){
