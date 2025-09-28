@@ -63,6 +63,7 @@
 .modal--active{display:flex}
 .modal__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
 .modal__content{position:relative;margin:auto;width:min(720px,92%);max-height:90vh;overflow:hidden;background:var(--surface);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.modal__content--sm{width:min(420px,92%)}
 .modal__header,.modal__footer{padding:12px 16px;border-bottom:1px solid var(--border)}
 .modal__footer{border-top:1px solid var(--border);border-bottom:0;display:flex;gap:8px;justify-content:flex-end}
 .modal__body{padding:12px 16px;overflow:auto}
