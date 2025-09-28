@@ -1,5 +1,5 @@
 const CONFIG = {
-  VERSION: '3.2.2',
+  VERSION: '3.2.4',
   STORAGE_KEYS: {
     PRODUCTS: 'pt_products_v3',
     ENTRIES: 'pt_entries_v3',
@@ -35,8 +35,10 @@ class App {
       backup: Safe.g(CONFIG.STORAGE_KEYS.BACKUP, {autoBackup:false,backupPeriod:'weekly',backupService:'email',lastBackup:null,backupHistory:[]})
     };
     if(!this.data.products?.length){
-      this.data.products=[{id:1,name:'Изделие А',price:100,archived:false,created:new Date().toISOString()}];
+      this.data.products=[{id:1,name:'Изделие А',price:100,archived:false,created:new Date().toISOString(),favorite:false}];
     }
+    // Добавим favorite:false к существующим продуктам если его нет
+    this.data.products.forEach(p=>{ if(p.favorite===undefined) p.favorite=false; });
 
     this.q=(s)=>document.querySelector(s);
     this.qa=(s)=>document.querySelectorAll(s);
@@ -45,10 +47,9 @@ class App {
     this.bindEvents();
     this.applyTheme(this.data.theme);
 
-    // Инициализация первого экрана
-    this.switchScreen('records');
+    const anyActive = Array.from(this.screens).some(s=>s.classList.contains('screen--active'));
+    if(!anyActive){ this.switchScreen('records'); }
 
-    // Первичный рендер
     this.renderPresets();
     this.applyManualDefaultHours();
     this.updateProductSuggestions();
@@ -59,6 +60,7 @@ class App {
 
   cacheDOM(){
     this.monthSumHeader=this.q('#monthSumHeader');
+    this.finalAmountHeader=this.q('#finalAmountHeader'); // НОВОЕ: итог в шапке
     this.settingsBtn=this.q('#settingsBtn');
     this.exportJsonBtn=this.q('#exportJsonBtn');
     this.reloadBtn=this.q('#reloadBtn');
@@ -67,6 +69,7 @@ class App {
     this.screens=this.qa('.screen');
 
     this.productSearch=this.q('#productSearch');
+    this.clearSearchBtn=this.q('#clearSearchBtn'); // НОВОЕ: крестик очистки
     this.productSuggestions=this.q('#productSuggestions');
     this.selectedProductId=null;
 
@@ -119,7 +122,9 @@ class App {
 
     this.productSearch?.addEventListener('input',()=>this.updateProductSuggestions());
     this.productSearch?.addEventListener('focus',()=>this.updateProductSuggestions());
-    document.addEventListener('click',(e)=>{ if(!this.productSuggestions.contains(e.target)&&e.target!==this.productSearch){ this.hideSuggestions(); }});
+    // НОВОЕ: крестик очистки
+    this.clearSearchBtn?.addEventListener('click',()=>this.clearSearch());
+    document.addEventListener('click',(e)=>{ if(!this.productSuggestions.contains(e.target)&&e.target!==this.productSearch&&e.target!==this.clearSearchBtn){ this.hideSuggestions(); }});
 
     this.quantityInput?.setAttribute('step','1');
     this.quantityInput?.setAttribute('min','1');
@@ -145,10 +150,14 @@ class App {
     this.importProductsFile?.addEventListener('change',(e)=>this.importProducts(e.target.files[0]));
   }
 
-  // ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
   switchScreen(name){
     this.navTabs.forEach(t=>t.classList.toggle('nav__tab--active', t.dataset.tab===name));
-    this.screens.forEach(s=>s.classList.toggle('screen--active', s.dataset.screen===name));
+    this.screens.forEach(s=>{
+      const active = s.dataset.screen === name;
+      s.classList.toggle('screen--active', active);
+      s.style.display = active ? 'block' : 'none';
+    });
+
     if(name==='records'){ this.updateProductSuggestions(); this.applyManualDefaultHours(); this.renderRecords(); }
     if(name==='statistics'){ this.renderStatistics(); }
     if(name==='history'){ this.renderHistory(); }
@@ -159,28 +168,69 @@ class App {
     this.settingsPanels.forEach(p=>p.classList.toggle('settings-panel--active', p.dataset.panel===name));
   }
 
-  // Тема
   applyTheme(theme){ document.body.dataset.theme=theme; Safe.sr(CONFIG.STORAGE_KEYS.THEME, theme); }
 
-  // Поиск продукта
+  // НОВОЕ: очистка поиска с показом всех товаров
+  clearSearch(){
+    this.productSearch.value = '';
+    this.selectedProductId = null;
+    this.updateProductSuggestions();
+    this.calculateSum();
+    this.updateClearButton();
+  }
+
+  // НОВОЕ: показать/скрыть крестик очистки
+  updateClearButton(){
+    if(!this.clearSearchBtn) return;
+    if(this.productSearch?.value?.trim()){
+      this.clearSearchBtn.classList.remove('hidden');
+    } else {
+      this.clearSearchBtn.classList.add('hidden');
+    }
+  }
+
   updateProductSuggestions(){
+    this.updateClearButton(); // НОВОЕ: обновляем видимость крестика
     const q=(this.productSearch?.value||'').trim().toLowerCase();
     const all=(this.data.products||[]).filter(p=>!p.archived);
+    // НОВОЕ: сортировка избранных сверху
+    all.sort((a,b)=>{
+      if(a.favorite && !b.favorite) return -1;
+      if(!a.favorite && b.favorite) return 1;
+      return 0;
+    });
     const list=q? all.filter(p=>p.name.toLowerCase().includes(q)) : all;
     this.renderSuggestions(list.slice(0,30));
   }
   renderSuggestions(items){
     if(!this.productSuggestions) return;
-    if(!items.length){
-      this.productSuggestions.innerHTML=''; this.productSuggestions.classList.add('hidden'); this.selectedProductId=null; this.calculateSum(); return;
-    }
+    if(!items.length){ this.productSuggestions.innerHTML=''; this.productSuggestions.classList.add('hidden'); this.selectedProductId=null; this.calculateSum(); return; }
     this.productSuggestions.classList.remove('hidden');
     this.productSuggestions.innerHTML='';
     items.forEach(p=>{
       const row=document.createElement('div');
       row.className='suggestion-item';
-      row.textContent=`${p.name} — ${p.price}${CONFIG.DEFAULT_CURRENCY}`;
-      row.addEventListener('click',()=>{ this.productSearch.value=p.name; this.selectedProductId=p.id; this.hideSuggestions(); this.calculateSum(); });
+      // НОВОЕ: звёздочка + текст
+      row.innerHTML = `
+        <span class="suggestion-star ${p.favorite?'suggestion-star--favorite':''}" data-id="${p.id}">★</span>
+        <span class="suggestion-text">${p.name} — ${p.price}${CONFIG.DEFAULT_CURRENCY}</span>
+      `;
+      
+      // Клик по тексту - выбор продукта
+      row.querySelector('.suggestion-text').addEventListener('click',()=>{ 
+        this.productSearch.value=p.name; 
+        this.selectedProductId=p.id; 
+        this.hideSuggestions(); 
+        this.calculateSum(); 
+        this.updateClearButton();
+      });
+      
+      // НОВОЕ: клик по звёздочке - переключение избранного
+      row.querySelector('.suggestion-star').addEventListener('click',(e)=>{
+        e.stopPropagation();
+        this.toggleFavorite(p.id);
+      });
+      
       this.productSuggestions.appendChild(row);
     });
     const exact=items.find(p=>p.name.toLowerCase()===this.productSearch.value.trim().toLowerCase());
@@ -188,39 +238,54 @@ class App {
   }
   hideSuggestions(){ this.productSuggestions?.classList.add('hidden'); }
 
-  // Пресеты и часы
+  // НОВОЕ: переключение избранного
+  toggleFavorite(productId){
+    const p = (this.data.products||[]).find(x=>x.id===productId);
+    if(!p) return;
+    p.favorite = !p.favorite;
+    this.save();
+    this.updateProductSuggestions();
+    this.renderProductsList();
+    this.log('edit_product', p, p.favorite ? 'Добавлен в избранное' : 'Убран из избранного');
+  }
+
   renderPresets(){
     if(!this.presetsContainer) return;
     this.presetsContainer.innerHTML='';
     (this.data.presets||[]).forEach(v=>{
       const b=document.createElement('button'); b.className='preset-btn'; b.textContent=v;
-      b.addEventListener('click',()=>{ const base=Math.max(1,Math.floor(parseFloat(this.quantityInput.value)||0)); this.quantityInput.value=base+Number(v); this.calculateSum(); });
+      b.addEventListener('click',()=>{ 
+        // ИЗМЕНЕНО: если поле пустое, ставим значение пресета, иначе прибавляем
+        const base=Math.max(0,Math.floor(parseFloat(this.quantityInput.value)||0)); 
+        this.quantityInput.value = base === 0 ? Number(v) : base + Number(v); 
+        this.calculateSum(); 
+      });
       this.presetsContainer.appendChild(b);
     });
   }
-  applyManualDefaultHours(){ if(this.manualShiftHours) this.manualShiftHours.value = this.data.salary?.hoursPerShift ?? 8; }
+  applyManualDefaultHours(){ if(this.manualShiftHours) this.manualShiftHours.value=this.data.salary?.hoursPerShift ?? 8; }
 
-  // Текущий продукт
   currentProduct(){
     if(this.selectedProductId) return (this.data.products||[]).find(p=>p.id===this.selectedProductId)||null;
-    const q=(this.productSearch?.value||'').trim().toLowerCase(); if(!q) return null;
+    const q=(this.productSearch?.value||'').trim().toLowerCase();
+    if(!q) return null;
     return (this.data.products||[]).find(p=>!p.archived && p.name.toLowerCase()===q)||null;
   }
 
-  // Сумма
   calculateSum(){
     const p=this.currentProduct();
     const qty=Math.max(1,Math.floor(parseFloat(this.quantityInput?.value)||1));
-    this.sumAmount.textContent = p? `${(qty*p.price).toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}` : `0 ${CONFIG_DEFAULT_CURRENCY}`;
+    this.sumAmount.textContent = p? `${(qty*p.price).toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}` : `0 ${CONFIG.DEFAULT_CURRENCY}`;
   }
 
-  // Записи
   addRecord(){
-    const p=this.currentProduct(); const qty=Math.max(1,Math.floor(parseFloat(this.quantityInput?.value)||1));
+    const p=this.currentProduct(); 
+    const qty=Math.max(1,Math.floor(parseFloat(this.quantityInput?.value)||1));
     if(!p) return alert('Выберите продукт (начните ввод и выберите из списка)');
     const rec={id:Date.now(),productId:p.id,quantity:qty,price:p.price,sum:qty*p.price,date:new Date().toISOString()};
     (this.data.entries=this.data.entries||[]).push(rec); this.log('add_record',rec,'Добавлена запись'); this.save();
-    this.quantityInput.value='1'; this.calculateSum(); this.renderRecords(); this.renderStatistics();
+    // ИЗМЕНЕНО: очищаем поле количества полностью
+    this.quantityInput.value=''; this.calculateSum(); this.renderRecords(); this.renderStatistics();
   }
   renderRecords(){
     if(!this.recordsList) return;
@@ -242,20 +307,17 @@ class App {
     if(i>=0){ const old=this.data.entries[i]; this.data.entries.splice(i,1); this.log('delete_record',old,'Удалена запись'); this.save(); this.renderRecords(); this.renderStatistics(); }
   }
 
-  // Смены
   addManualShift(){
     const h=parseFloat(this.manualShiftHours?.value); if(!h||h<=0) return alert('Введите часы (>0)');
     const sh={id:Date.now(),date:new Date().toISOString().slice(0,10),hours:h,type:'work',comment:'',auto:false};
-    (this.data.shifts=this.data.shifts||[]).push(sh);
-    this.log('add_shift',sh,`Добавлена смена: ${h} ч`); this.save(); this.applyManualDefaultHours(); this.renderStatistics();
+    (this.data.shifts=this.data.shifts||[]).push(sh); this.log('add_shift',sh,`Добавлена смена: ${h} ч`); this.save(); this.applyManualDefaultHours(); this.renderStatistics();
   }
 
-  // Статистика
   renderStatistics(){
     if(!this.statsGrid) return;
     const now=new Date(); const y=now.getFullYear(); const m=now.getMonth()+1;
-    const entries=(this.data.entries||[]).filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&(d.getMonth()+1)===m;});
-    const income=entries.reduce((s,r)=>s+r.sum,0);
+    const month=(this.data.entries||[]).filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&(d.getMonth()+1)===m;});
+    const income=month.reduce((s,r)=>s+r.sum,0);
     const manual=(this.data.shifts||[]).filter(s=>{const d=new Date(s.date);return d.getFullYear()===y&&(d.getMonth()+1)===m&&!s.auto;}).reduce((s,a)=>s+(parseFloat(a.hours)||0),0);
     let auto=0; if(this.data.salary.workSchedule!=='off' && typeof WorkScheduleManager==='function'){ const ws=new WorkScheduleManager(); ws.updateSettings(this.data.salary); auto=ws.calculateAutoHours(y,m); }
     const hours=manual+auto;
@@ -263,8 +325,7 @@ class App {
     const base=parseFloat(this.data.salary.baseSalary)||0;
     const tax=(parseFloat(this.data.salary.taxRate)||0)/100;
     const adv=parseFloat(this.data.salary.advanceAmount)||0;
-
-    const hourly = hours>0 ? (base+income)/hours : 0;
+    const hourly=hours>0?(base+income)/hours:0;
     const taxAmount=(base+income)*tax;
     const finalAmount=(base+income)-taxAmount-adv;
 
@@ -274,13 +335,15 @@ class App {
       {label:'Часы отработано', value:`${hours.toFixed(1)} ч`, type:'neutral'},
       {label:'Почасовая ставка', value:`${hourly.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}/ч`, type:'neutral'},
       {label:'Налог', value:`${taxAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`, type:'expense'},
-      {label:'На руки (итог)', value:`${finalAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`, type: finalAmount>=0?'income':'expense'}
+      {label:'На руки (итог)', value:`${finalAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`, type:finalAmount>=0?'income':'expense'}
     ];
     this.statsGrid.innerHTML=''; cards.forEach(c=>{ const el=document.createElement('div'); el.className=`stat-card stat-card--${c.type}`; el.innerHTML=`<div class="stat-value">${c.value}</div><div class="stat-label">${c.label}</div>`; this.statsGrid.appendChild(el); });
+    
+    // НОВОЕ: обновляем итоговую сумму в шапке
     if(this.monthSumHeader) this.monthSumHeader.textContent=`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
+    if(this.finalAmountHeader) this.finalAmountHeader.textContent=`${finalAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
   }
 
-  // Настройки
   openSettings(){
     if(!this.settingsModal) return;
     const s=this.data.salary||{};
@@ -308,25 +371,26 @@ class App {
     this.productsList.innerHTML='';
     (this.data.products||[]).forEach(p=>{
       const row=document.createElement('div'); row.className='record-item';
-      row.innerHTML=`<div class="record-info"><div class="record-title">${this.esc(p.name)}</div><div class="record-details">${p.price}${CONFIG.DEFAULT_CURRENCY}</div></div><div class="record-actions"><button class="btn btn--sm btn--outline" data-a="edit">Изменить</button><button class="btn btn--sm btn--outline" data-a="toggle">${p.archived?'Восстановить':'Архив'}</button><button class="btn btn--sm btn--danger" data-a="del">Удалить</button></div>`;
+      // НОВОЕ: показываем звёздочку в списке продуктов
+      const star = p.favorite ? '⭐' : '☆';
+      row.innerHTML=`<div class="record-info"><div class="record-title">${star} ${this.esc(p.name)}</div><div class="record-details">${p.price}${CONFIG.DEFAULT_CURRENCY}</div></div><div class="record-actions"><button class="btn btn--sm btn--outline" data-a="fav">${p.favorite?'Убрать':'Избранное'}</button><button class="btn btn--sm btn--outline" data-a="edit">Изменить</button><button class="btn btn--sm btn--outline" data-a="toggle">${p.archived?'Восстановить':'Архив'}</button><button class="btn btn--sm btn--danger" data-a="del">Удалить</button></div>`;
+      row.querySelector('[data-a="fav"]').addEventListener('click',()=>this.toggleFavorite(p.id));
       row.querySelector('[data-a="edit"]').addEventListener('click',()=>this.editProductPrompt(p.id));
       row.querySelector('[data-a="toggle"]').addEventListener('click',()=>this.toggleProduct(p.id));
       row.querySelector('[data-a="del"]').addEventListener('click',()=>this.deleteProduct(p.id));
       this.productsList.appendChild(row);
     });
   }
-  addProductPrompt(){ const n=prompt('Название продукта:'); if(!n) return; const pr=parseFloat(prompt('Цена:')); if(isNaN(pr)||pr<=0) return alert('Некорректная цена'); const p={id:Date.now(),name:n.trim(),price:pr,archived:false,created:new Date().toISOString()}; (this.data.products=this.data.products||[]).push(p); this.log('add_product',p,'Добавлен продукт'); this.save(); this.renderProductsList(); this.updateProductSuggestions(); }
+  addProductPrompt(){ const n=prompt('Название продукта:'); if(!n) return; const pr=parseFloat(prompt('Цена:')); if(isNaN(pr)||pr<=0) return alert('Некорректная цена'); const p={id:Date.now(),name:n.trim(),price:pr,archived:false,created:new Date().toISOString(),favorite:false}; (this.data.products=this.data.products||[]).push(p); this.log('add_product',p,'Добавлен продукт'); this.save(); this.renderProductsList(); this.updateProductSuggestions(); }
   editProductPrompt(id){ const p=(this.data.products||[]).find(x=>x.id===id); if(!p) return; const n=prompt('Название:',p.name); if(!n) return; const pr=parseFloat(prompt('Цена:',p.price)); if(isNaN(pr)||pr<=0) return alert('Некорректная цена'); p.name=n.trim(); p.price=pr; this.log('edit_product',p,'Изменён продукт'); this.save(); this.renderProductsList(); this.updateProductSuggestions(); }
   toggleProduct(id){ const p=(this.data.products||[]).find(x=>x.id===id); if(!p) return; p.archived=!p.archived; this.log('edit_product',p,p.archived?'Архивирован':'Восстановлен'); this.save(); this.renderProductsList(); this.updateProductSuggestions(); }
-  deleteProduct(id){ if((this.data.entries||[]).some(e=>e.productId===id)) return alert('Нельзя удалить продукт с записями. Переведите в архив.'); if(!confirm('Удалить продукт?')) return; const i=(this.data.products||[]).findIndex(p=>p.id===id); if(i>=0){ const old=this.data.products[i]; this.data.products.splice(i,1); this.log('delete_product',old,'Удалён продукт'); this.save(); this.renderProductsList(); this.updateProductSuggestions(); } }
+  deleteProduct(id){ if((this.data.entries||[]).some(e=>e.productId===id)) return alert('Нельзя удалить продукт с записями. Переведите его в архив.'); if(!confirm('Удалить продукт?')) return; const i=(this.data.products||[]).findIndex(p=>p.id===id); if(i>=0){ const old=this.data.products[i]; this.data.products.splice(i,1); this.log('delete_product',old,'Удалён продукт'); this.save(); this.renderProductsList(); this.updateProductSuggestions(); } }
 
-  // История/экспорт
   renderHistory(){ if(!this.historyList) return; const df=this.filterDate?.value; const af=this.filterAction?.value; let list=[...(this.data.log||[])]; if(df) list=list.filter(e=>new Date(e.timestamp).toISOString().slice(0,10)===df); if(af) list=list.filter(e=>e.action===af); list.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)); this.historyList.innerHTML=list.length?'':'<div class="record-item"><div class="record-info"><div class="record-title">История пуста</div></div></div>'; list.forEach(e=>{ const d=new Date(e.timestamp); const row=document.createElement('div'); row.className='record-item'; row.innerHTML=`<div class="record-info"><div class="record-title">${this.esc(this.actionName(e.action))}</div><div class="record-details">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div><div class="record-details">${this.esc(e.details||'')}</div></div>`; this.historyList.appendChild(row); }); }
   exportCsv(){ const now=new Date(); const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; const list=(this.data.entries||[]).filter(e=>{const d=new Date(e.date);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;}); if(!list.length) return alert('Нет записей для экспорта'); let csv='\ufeffДата,Продукт,Количество,Цена,Сумма\n'; list.forEach(r=>{ const p=(this.data.products||[]).find(x=>x.id===r.productId); const name=p?p.name:'Неизвестный продукт'; const date=new Date(r.date).toLocaleDateString(CONFIG.DATE_FORMAT); csv+=`"${date}","${name}","${r.quantity}","${r.price}","${r.sum.toFixed(2)}"\n`; }); this.download(csv,`export-${ym}.csv`,'text/csv;charset=utf-8;'); }
   exportJson(){ const payload={version:CONFIG.VERSION,timestamp:new Date().toISOString(),data:this.data}; this.download(JSON.stringify(payload,null,2),`backup-${new Date().toISOString().slice(0,10)}.json`,'application/json'); }
   exportHistory(){ const payload={version:CONFIG.VERSION,timestamp:new Date().toISOString(),history:this.data.log}; this.download(JSON.stringify(payload,null,2),`history-${new Date().toISOString().slice(0,10)}.json`,'application/json'); }
   download(content,name,type){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
-
   save(){ Safe.s(CONFIG.STORAGE_KEYS.PRODUCTS,this.data.products); Safe.s(CONFIG.STORAGE_KEYS.ENTRIES,this.data.entries); Safe.s(CONFIG.STORAGE_KEYS.SHIFTS,this.data.shifts); Safe.s(CONFIG.STORAGE_KEYS.SALARY,this.data.salary); Safe.s(CONFIG.STORAGE_KEYS.LOG,(this.data.log||[]).slice(-CONFIG.MAX_LOG)); Safe.s(CONFIG.STORAGE_KEYS.PRESETS,this.data.presets); Safe.sr(CONFIG.STORAGE_KEYS.THEME,this.data.theme||'classic'); Safe.s(CONFIG.STORAGE_KEYS.BACKUP,this.data.backup); }
   log(a,item,details){ (this.data.log=this.data.log||[]).push({id:Date.now()+Math.random()*1000|0,timestamp:new Date().toISOString(),action:a,item,details}); }
   actionName(a){ const m={add_record:'Добавление записи',delete_record:'Удаление записи',add_product:'Добавление продукта',edit_product:'Изменение продукта',delete_product:'Удаление продукта',settings:'Изменение настроек',add_shift:'Добавление смены'}; return m[a]||a; }
