@@ -1,43 +1,41 @@
 {
-  "name": "Учёт продукции 2",
-  "short_name": "Учёт2",
-  "description": "Приложение для учёта произведённой продукции с расчётом зарплаты",
-  "version": "3.0.0",
-  "start_url": "./index.html",
+  "name": "Учёт продукции",
+  "short_name": "Учёт",
+  "description": "Учёт произведённой продукции с расчётом зарплаты и статистикой",
+  "start_url": "/production-tracker/index.html",
+  "scope": "/production-tracker/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
+  "background_color": "#f5f6f8",
   "theme_color": "#2c3e50",
-  "background_color": "#f0f0f3",
-  "categories": ["business", "productivity", "finance"],
-  "lang": "ru",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png", 
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     }
   ],
-  "screenshots": [
+  "shortcuts": [
     {
-      "src": "screenshots/mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Главный экран приложения"
+      "name": "Добавить запись",
+      "short_name": "Добавить",
+      "description": "Быстрое добавление записи",
+      "url": "/production-tracker/index.html?quick=add",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
-      "src": "screenshots/desktop.png", 
-      "sizes": "1200x800",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Интерфейс на десктопе"
+      "name": "Статистика",
+      "short_name": "Статистика",
+      "description": "Просмотр статистики за месяц",
+      "url": "/production-tracker/index.html?tab=statistics",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }
