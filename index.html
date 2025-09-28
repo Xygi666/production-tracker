@@ -233,6 +233,30 @@
     </div>
   </div>
 
+  <div class="modal" id="productModal">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content modal__content--sm">
+      <div class="modal__header">
+        <h3 id="productModalTitle">Добавить продукт</h3>
+        <button class="modal__close" id="closeProductBtn">×</button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group">
+          <label for="productNameInput">Название продукта</label>
+          <input id="productNameInput" class="form-control" type="text" placeholder="Название">
+        </div>
+        <div class="form-group">
+          <label for="productPriceInput">Цена</label>
+          <input id="productPriceInput" class="form-control" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--primary" id="saveProductBtn">Сохранить</button>
+        <button class="btn btn--outline" id="cancelProductBtn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
   <script src="work-schedule.js"></script>
   <script src="backup.js"></script>
   <script src="app.js"></script>
