@@ -43,19 +43,20 @@ class App {
         autoBackup:false,backupPeriod:'weekly',backupService:'email',lastBackup:null,backupHistory:[]
       })
     };
+
     if(!this.data.products.length){
       this.data.products = [{id:1,name:'Изделие А',price:100,archived:false,created:new Date().toISOString(),favorite:false}];
     }
+    this.data.products.forEach(p=>{ if(p.favorite===undefined) p.favorite=false; });
 
-    // Shortcut to query
-    this.q = s => document.querySelector(s);
-    this.qa = s => document.querySelectorAll(s);
+    this.q = sel => document.querySelector(sel);
+    this.qa = sel => document.querySelectorAll(sel);
 
     this.cacheDOM();
     this.bindEvents();
     this.applyTheme(this.data.theme);
 
-    // Ensure initial screen active
+    // Ensure initial screen
     if(!Array.from(this.screens).some(s=>s.classList.contains('screen--active'))){
       this.switchScreen('records');
     }
@@ -81,7 +82,7 @@ class App {
     this.navTabs = this.qa('.nav__tab');
     this.screens = this.qa('.screen');
 
-    // Records screen
+    // Records
     this.productSearch = this.q('#productSearch');
     this.clearSearchBtn = this.q('#clearSearchBtn');
     this.productSuggestions = this.q('#productSuggestions');
@@ -96,14 +97,14 @@ class App {
     this.manualShiftHours = this.q('#manualShiftHours');
     this.addManualShiftBtn = this.q('#addManualShiftBtn');
 
-    // Statistics & history
+    // Stats & History
     this.statsGrid = this.q('#statsGrid');
     this.filterDate = this.q('#filterDate');
     this.filterAction = this.q('#filterAction');
     this.historyList = this.q('#historyList');
     this.exportHistoryBtn = this.q('#exportHistoryBtn');
 
-    // Settings modal
+    // Settings
     this.settingsModal = this.q('#settingsModal');
     this.closeSettingsBtn = this.q('#closeSettingsBtn');
     this.saveSettingsBtn = this.q('#saveSettingsBtn');
@@ -123,6 +124,15 @@ class App {
     this.themeSelect = this.q('#themeSelect');
     this.presetsInput = this.q('#presetsInput');
 
+    // Product modal
+    this.productModal = this.q('#productModal');
+    this.closeProductBtn = this.q('#closeProductBtn');
+    this.cancelProductBtn = this.q('#cancelProductBtn');
+    this.saveProductBtn = this.q('#saveProductBtn');
+    this.productModalTitle = this.q('#productModalTitle');
+    this.productNameInput = this.q('#productNameInput');
+    this.productPriceInput = this.q('#productPriceInput');
+
     // Backup buttons
     this.emailBackupBtn = this.q('#emailBackupBtn');
     this.yandexBackupBtn = this.q('#yandexBackupBtn');
@@ -130,12 +140,12 @@ class App {
   }
 
   bindEvents(){
-    // Nav tabs
+    // Nav
     this.navTabs.forEach(tab=>
       tab.addEventListener('click', e=>this.switchScreen(e.currentTarget.dataset.tab))
     );
 
-    // Header actions
+    // Header
     this.settingsBtn.addEventListener('click', ()=>this.openSettings());
     this.exportJsonBtn.addEventListener('click', ()=>this.exportJson());
     this.reloadBtn.addEventListener('click', ()=>location.reload());
@@ -145,14 +155,14 @@ class App {
     this.productSearch.addEventListener('focus', ()=>this.updateProductSuggestions());
     this.clearSearchBtn.addEventListener('click', ()=>this.clearSearch());
     document.addEventListener('click', e=>{
-      if(!this.productSuggestions.contains(e.target)
-         && e.target!==this.productSearch
+      if(!this.productSuggestions.contains(e.target) 
+         && e.target!==this.productSearch 
          && e.target!==this.clearSearchBtn){
         this.hideSuggestions();
       }
     });
 
-    // Quantity controls
+    // Quantity
     this.quantityInput.setAttribute('step','1');
     this.quantityInput.setAttribute('min','1');
     this.quantityInput.addEventListener('input', ()=>{
@@ -160,11 +170,11 @@ class App {
       this.quantityInput.value = v; this.calculateSum();
     });
     this.decreaseBtn.addEventListener('click', ()=>{
-      const c = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
-      this.quantityInput.value = Math.max(1, c-1); this.calculateSum();
+      const c= Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      this.quantityInput.value = Math.max(1,c-1); this.calculateSum();
     });
     this.increaseBtn.addEventListener('click', ()=>{
-      const c = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      const c= Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
       this.quantityInput.value = c+1; this.calculateSum();
     });
     this.addRecordBtn.addEventListener('click', ()=>this.addRecord());
@@ -173,12 +183,12 @@ class App {
     // Manual shift
     this.addManualShiftBtn.addEventListener('click', ()=>this.addManualShift());
 
-    // History filters
+    // History
     this.filterDate.addEventListener('change', ()=>this.renderHistory());
     this.filterAction.addEventListener('change', ()=>this.renderHistory());
     this.exportHistoryBtn.addEventListener('click', ()=>this.exportHistory());
 
-    // Settings modal
+    // Settings
     this.closeSettingsBtn.addEventListener('click', ()=>this.closeSettings());
     this.cancelSettingsBtn.addEventListener('click', ()=>this.closeSettings());
     this.saveSettingsBtn.addEventListener('click', ()=>this.saveSettings());
@@ -191,15 +201,10 @@ class App {
       }
     });
 
-    // Product management
+    // Products
     this.addProductBtn.addEventListener('click', ()=>this.openProductModal());
     this.importProductsBtn.addEventListener('click', ()=>this.importProductsFile.click());
     this.importProductsFile.addEventListener('change', e=>this.importProducts(e.target.files[0]));
-
-    // Backup
-    this.emailBackupBtn.addEventListener('click', ()=>this.shareBackup('email'));
-    this.yandexBackupBtn.addEventListener('click', ()=>this.shareBackup('yandex'));
-    this.googleBackupBtn.addEventListener('click', ()=>this.shareBackup('google'));
 
     // Product modal
     this.closeProductBtn.addEventListener('click', ()=>this.closeProductModal());
@@ -210,9 +215,13 @@ class App {
         this.closeProductModal();
       }
     });
+
+    // Backup
+    this.emailBackupBtn.addEventListener('click', ()=>this.shareBackup('email'));
+    this.yandexBackupBtn.addEventListener('click', ()=>this.shareBackup('yandex'));
+    this.googleBackupBtn.addEventListener('click', ()=>this.shareBackup('google'));
   }
 
-  // Screen switching
   switchScreen(name){
     this.navTabs.forEach(tab=>
       tab.classList.toggle('nav__tab--active', tab.dataset.tab===name)
@@ -227,12 +236,7 @@ class App {
     if(name==='history'){ this.renderHistory(); }
   }
 
-  // ... остальные методы (openSettings, saveSettings, renderPresets, applyManualDefaultHours,
-  // updateProductSuggestions, renderSuggestions, hideSuggestions, clearSearch,
-  // toggleFavorite, currentProduct, calculateSum, addRecord, renderRecords, deleteRecord,
-  // addManualShift, renderStatistics, openProductModal, closeProductModal, saveProduct,
-  // renderProductsList, deleteProduct, renderHistory, exportCsv, exportJson, exportHistory,
-  // download, save, log, actionName, esc) ...
+  // ... все остальные методы ... shareBackup, openSettings, saveSettings, etc.
 }
 
 let app;
