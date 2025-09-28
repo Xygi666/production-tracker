@@ -1,5 +1,5 @@
 const CONFIG = {
-  VERSION: '3.2.5',
+  VERSION: '3.2.6',
   STORAGE_KEYS: {
     PRODUCTS: 'pt_products_v3',
     ENTRIES: 'pt_entries_v3',
@@ -28,27 +28,39 @@ class App {
       products: Safe.g(CONFIG.STORAGE_KEYS.PRODUCTS, []),
       entries: Safe.g(CONFIG.STORAGE_KEYS.ENTRIES, []),
       shifts: Safe.g(CONFIG.STORAGE_KEYS.SHIFTS, []),
-      salary: Safe.g(CONFIG.STORAGE_KEYS.SALARY, { baseSalary:50000, taxRate:13, advanceAmount:0, workSchedule:'off', hoursPerShift:12, scheduleStartDate:'2025-09-01' }),
+      salary: Safe.g(CONFIG.STORAGE_KEYS.SALARY, {
+        baseSalary:50000,
+        taxRate:13,
+        advanceAmount:0,
+        workSchedule:'off',
+        hoursPerShift:12,
+        scheduleStartDate:'2025-09-01'
+      }),
       log: Safe.g(CONFIG.STORAGE_KEYS.LOG, []),
       presets: Safe.g(CONFIG.STORAGE_KEYS.PRESETS, [1,5,10,25,50]),
       theme: Safe.gr(CONFIG.STORAGE_KEYS.THEME, 'classic'),
-      backup: Safe.g(CONFIG.STORAGE_KEYS.BACKUP, {autoBackup:false,backupPeriod:'weekly',backupService:'email',lastBackup:null,backupHistory:[]})
+      backup: Safe.g(CONFIG.STORAGE_KEYS.BACKUP, {
+        autoBackup:false,backupPeriod:'weekly',backupService:'email',lastBackup:null,backupHistory:[]
+      })
     };
-    if(!this.data.products?.length){
-      this.data.products=[{id:1,name:'Изделие А',price:100,archived:false,created:new Date().toISOString(),favorite:false}];
+    if(!this.data.products.length){
+      this.data.products = [{id:1,name:'Изделие А',price:100,archived:false,created:new Date().toISOString(),favorite:false}];
     }
-    this.data.products.forEach(p=>{ if(p.favorite===undefined) p.favorite=false; });
 
-    this.q=(s)=>document.querySelector(s);
-    this.qa=(s)=>document.querySelectorAll(s);
+    // Shortcut to query
+    this.q = s => document.querySelector(s);
+    this.qa = s => document.querySelectorAll(s);
 
     this.cacheDOM();
     this.bindEvents();
     this.applyTheme(this.data.theme);
 
-    const anyActive = Array.from(this.screens).some(s=>s.classList.contains('screen--active'));
-    if(!anyActive){ this.switchScreen('records'); }
+    // Ensure initial screen active
+    if(!Array.from(this.screens).some(s=>s.classList.contains('screen--active'))){
+      this.switchScreen('records');
+    }
 
+    // Initial render
     this.renderPresets();
     this.applyManualDefaultHours();
     this.updateProductSuggestions();
@@ -58,55 +70,169 @@ class App {
   }
 
   cacheDOM(){
-    // ... остальные элементы DOM ...
+    // Header
+    this.monthSumHeader = this.q('#monthSumHeader');
+    this.finalAmountHeader = this.q('#finalAmountHeader');
+    this.settingsBtn = this.q('#settingsBtn');
+    this.exportJsonBtn = this.q('#exportJsonBtn');
+    this.reloadBtn = this.q('#reloadBtn');
 
-    // Кнопки бэкапа
+    // Navigation
+    this.navTabs = this.qa('.nav__tab');
+    this.screens = this.qa('.screen');
+
+    // Records screen
+    this.productSearch = this.q('#productSearch');
+    this.clearSearchBtn = this.q('#clearSearchBtn');
+    this.productSuggestions = this.q('#productSuggestions');
+    this.quantityInput = this.q('#quantityInput');
+    this.decreaseBtn = this.q('#decreaseBtn');
+    this.increaseBtn = this.q('#increaseBtn');
+    this.presetsContainer = this.q('#presetsContainer');
+    this.sumAmount = this.q('#sumAmount');
+    this.addRecordBtn = this.q('#addRecordBtn');
+    this.recordsList = this.q('#recordsList');
+    this.exportCsvBtn = this.q('#exportCsvBtn');
+    this.manualShiftHours = this.q('#manualShiftHours');
+    this.addManualShiftBtn = this.q('#addManualShiftBtn');
+
+    // Statistics & history
+    this.statsGrid = this.q('#statsGrid');
+    this.filterDate = this.q('#filterDate');
+    this.filterAction = this.q('#filterAction');
+    this.historyList = this.q('#historyList');
+    this.exportHistoryBtn = this.q('#exportHistoryBtn');
+
+    // Settings modal
+    this.settingsModal = this.q('#settingsModal');
+    this.closeSettingsBtn = this.q('#closeSettingsBtn');
+    this.saveSettingsBtn = this.q('#saveSettingsBtn');
+    this.cancelSettingsBtn = this.q('#cancelSettingsBtn');
+    this.settingsTabs = this.qa('.settings-tab');
+    this.settingsPanels = this.qa('.settings-panel');
+    this.baseSalary = this.q('#baseSalary');
+    this.taxRate = this.q('#taxRate');
+    this.advanceAmount = this.q('#advanceAmount');
+    this.workSchedule = this.q('#workSchedule');
+    this.hoursPerShift = this.q('#hoursPerShift');
+    this.scheduleStartDate = this.q('#scheduleStartDate');
+    this.addProductBtn = this.q('#addProductBtn');
+    this.importProductsBtn = this.q('#importProductsBtn');
+    this.importProductsFile = this.q('#importProductsFile');
+    this.productsList = this.q('#productsList');
+    this.themeSelect = this.q('#themeSelect');
+    this.presetsInput = this.q('#presetsInput');
+
+    // Backup buttons
     this.emailBackupBtn = this.q('#emailBackupBtn');
     this.yandexBackupBtn = this.q('#yandexBackupBtn');
     this.googleBackupBtn = this.q('#googleBackupBtn');
   }
 
   bindEvents(){
-    // ... другие обработчики ...
+    // Nav tabs
+    this.navTabs.forEach(tab=>
+      tab.addEventListener('click', e=>this.switchScreen(e.currentTarget.dataset.tab))
+    );
 
-    // Бэкап
-    this.emailBackupBtn?.addEventListener('click', ()=>this.shareBackup('email'));
-    this.yandexBackupBtn?.addEventListener('click', ()=>this.shareBackup('yandex'));
-    this.googleBackupBtn?.addEventListener('click', ()=>this.shareBackup('google'));
+    // Header actions
+    this.settingsBtn.addEventListener('click', ()=>this.openSettings());
+    this.exportJsonBtn.addEventListener('click', ()=>this.exportJson());
+    this.reloadBtn.addEventListener('click', ()=>location.reload());
+
+    // Product search
+    this.productSearch.addEventListener('input', ()=>this.updateProductSuggestions());
+    this.productSearch.addEventListener('focus', ()=>this.updateProductSuggestions());
+    this.clearSearchBtn.addEventListener('click', ()=>this.clearSearch());
+    document.addEventListener('click', e=>{
+      if(!this.productSuggestions.contains(e.target)
+         && e.target!==this.productSearch
+         && e.target!==this.clearSearchBtn){
+        this.hideSuggestions();
+      }
+    });
+
+    // Quantity controls
+    this.quantityInput.setAttribute('step','1');
+    this.quantityInput.setAttribute('min','1');
+    this.quantityInput.addEventListener('input', ()=>{
+      const v = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      this.quantityInput.value = v; this.calculateSum();
+    });
+    this.decreaseBtn.addEventListener('click', ()=>{
+      const c = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      this.quantityInput.value = Math.max(1, c-1); this.calculateSum();
+    });
+    this.increaseBtn.addEventListener('click', ()=>{
+      const c = Math.max(1, Math.floor(parseFloat(this.quantityInput.value)||1));
+      this.quantityInput.value = c+1; this.calculateSum();
+    });
+    this.addRecordBtn.addEventListener('click', ()=>this.addRecord());
+    this.exportCsvBtn.addEventListener('click', ()=>this.exportCsv());
+
+    // Manual shift
+    this.addManualShiftBtn.addEventListener('click', ()=>this.addManualShift());
+
+    // History filters
+    this.filterDate.addEventListener('change', ()=>this.renderHistory());
+    this.filterAction.addEventListener('change', ()=>this.renderHistory());
+    this.exportHistoryBtn.addEventListener('click', ()=>this.exportHistory());
+
+    // Settings modal
+    this.closeSettingsBtn.addEventListener('click', ()=>this.closeSettings());
+    this.cancelSettingsBtn.addEventListener('click', ()=>this.closeSettings());
+    this.saveSettingsBtn.addEventListener('click', ()=>this.saveSettings());
+    this.settingsTabs.forEach(tab=>
+      tab.addEventListener('click', e=>this.switchSettingsPanel(e.currentTarget.dataset.tab))
+    );
+    this.settingsModal.addEventListener('click', e=>{
+      if(e.target===this.settingsModal || e.target.classList.contains('modal__backdrop')){
+        this.closeSettings();
+      }
+    });
+
+    // Product management
+    this.addProductBtn.addEventListener('click', ()=>this.openProductModal());
+    this.importProductsBtn.addEventListener('click', ()=>this.importProductsFile.click());
+    this.importProductsFile.addEventListener('change', e=>this.importProducts(e.target.files[0]));
+
+    // Backup
+    this.emailBackupBtn.addEventListener('click', ()=>this.shareBackup('email'));
+    this.yandexBackupBtn.addEventListener('click', ()=>this.shareBackup('yandex'));
+    this.googleBackupBtn.addEventListener('click', ()=>this.shareBackup('google'));
+
+    // Product modal
+    this.closeProductBtn.addEventListener('click', ()=>this.closeProductModal());
+    this.cancelProductBtn.addEventListener('click', ()=>this.closeProductModal());
+    this.saveProductBtn.addEventListener('click', ()=>this.saveProduct());
+    this.productModal.addEventListener('click', e=>{
+      if(e.target===this.productModal || e.target.classList.contains('modal__backdrop')){
+        this.closeProductModal();
+      }
+    });
   }
 
-  // Метод для шаринга/бэкапа
-  shareBackup(type) {
-    const data = {
-      version: CONFIG.VERSION,
-      timestamp: new Date().toISOString(),
-      data: this.data
-    };
-    const content = JSON.stringify(data, null, 2);
-    const filename = `backup-${new Date().toISOString().slice(0,10)}.json`;
-
-    if (type === 'email') {
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const mailto = `mailto:?subject=Backup Production Tracker&body=Смотрите вложение.&attachment=${encodeURIComponent(url)}`;
-      window.location.href = mailto;
-
-    } else if (navigator.share && window.File) {
-      // Используем Web Share API
-      const file = new File([content], filename, { type: 'application/json' });
-      navigator.share({
-        title: 'Backup Production Tracker',
-        text: 'Файл бэкапа',
-        files: [file]
-      }).catch(err => console.error('Share failed:', err));
-
-    } else {
-      // fallback: скачать файл
-      this.download(content, filename, 'application/json');
-    }
+  // Screen switching
+  switchScreen(name){
+    this.navTabs.forEach(tab=>
+      tab.classList.toggle('nav__tab--active', tab.dataset.tab===name)
+    );
+    this.screens.forEach(screen=>{
+      const active = screen.dataset.screen===name;
+      screen.classList.toggle('screen--active', active);
+      screen.style.display = active ? 'block' : 'none';
+    });
+    if(name==='records'){ this.updateProductSuggestions(); this.applyManualDefaultHours(); this.renderRecords(); }
+    if(name==='statistics'){ this.renderStatistics(); }
+    if(name==='history'){ this.renderHistory(); }
   }
 
-  // ... остальные методы (download, save, log, действия по продуктам и т.д.) ...
+  // ... остальные методы (openSettings, saveSettings, renderPresets, applyManualDefaultHours,
+  // updateProductSuggestions, renderSuggestions, hideSuggestions, clearSearch,
+  // toggleFavorite, currentProduct, calculateSum, addRecord, renderRecords, deleteRecord,
+  // addManualShift, renderStatistics, openProductModal, closeProductModal, saveProduct,
+  // renderProductsList, deleteProduct, renderHistory, exportCsv, exportJson, exportHistory,
+  // download, save, log, actionName, esc) ...
 }
 
 let app;
