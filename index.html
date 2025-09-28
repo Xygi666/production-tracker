@@ -20,6 +20,9 @@
           <div class="header__subtitle">
             Доход за месяц: <span id="monthSumHeader">0 ₽</span>
           </div>
+          <div class="header__subtitle">
+            На руки (итог): <span id="finalAmountHeader">0 ₽</span>
+          </div>
         </div>
         <div class="header__actions">
           <button class="btn btn--sm btn--outline" id="settingsBtn">⚙️ Настройки</button>
@@ -40,13 +43,12 @@
     <main class="main">
       <div class="main__container">
 
-        <!-- Экран: Учёт -->
         <section class="screen screen--active" data-screen="records">
-
           <div class="form-group">
             <label for="productSearch">Продукт</label>
             <div class="product-search">
               <input id="productSearch" class="form-control" type="text" placeholder="Начните вводить название">
+              <button id="clearSearchBtn" class="search-clear-btn hidden">×</button>
               <div id="productSuggestions" class="suggestions hidden"></div>
             </div>
           </div>
@@ -55,7 +57,7 @@
             <label for="quantityInput">Количество (шт.)</label>
             <div class="quantity-control">
               <button type="button" class="btn btn--round" id="decreaseBtn">−</button>
-              <input id="quantityInput" class="form-control" type="number" step="1" min="1" inputmode="numeric" pattern="[0-9]*" placeholder="1">
+              <input id="quantityInput" class="form-control" type="number" step="1" min="1" inputmode="numeric" pattern="[0-9]*" placeholder="">
               <button type="button" class="btn btn--round" id="increaseBtn">+</button>
             </div>
           </div>
@@ -64,8 +66,7 @@
 
           <div class="form-group">
             <div class="sum-display">
-              <span>Сумма: </span>
-              <span class="sum-amount" id="sumAmount">0 ₽</span>
+              <span>Сумма: </span><span class="sum-amount" id="sumAmount">0 ₽</span>
             </div>
           </div>
 
@@ -87,16 +88,13 @@
             </div>
             <div id="recordsList" class="records-items"></div>
           </div>
-
         </section>
 
-        <!-- Экран: Статистика -->
         <section class="screen" data-screen="statistics">
           <h2>Статистика за текущий месяц</h2>
           <div id="statsGrid" class="stats-grid"></div>
         </section>
 
-        <!-- Экран: История -->
         <section class="screen" data-screen="history">
           <div class="history-header">
             <h2>История действий</h2>
@@ -118,7 +116,6 @@
 
       </div>
     </main>
-
   </div>
 
   <div class="modal" id="settingsModal">
@@ -225,11 +222,6 @@
                   <option value="google">Google Drive</option>
                 </select>
               </div>
-            </div>
-            <div class="backup-section">
-              <h4>Восстановление</h4>
-              <button class="btn btn--outline" id="restoreBackupBtn">📂 Восстановить из файла</button>
-              <input id="restoreBackupFile" type="file" accept=".json" style="display:none">
             </div>
           </div>
         </div>
