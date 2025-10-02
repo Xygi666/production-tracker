@@ -12,7 +12,6 @@
 </head>
 <body data-theme="classic">
   <div class="app">
-
     <header class="header">
       <div class="header__container">
         <div class="header__brand">
@@ -38,90 +37,65 @@
 
     <main class="main">
       <div class="main__container">
-
-        <!-- Учёт -->
         <section class="screen screen--active" data-screen="records">
-          <!-- ... без изменений ... -->
+          <div class="form-group">
+            <label for="productSearch">Продукт</label>
+            <div class="product-search">
+              <input id="productSearch" class="form-control" type="text" placeholder="Начните вводить название">
+              <button id="clearSearchBtn" class="search-clear-btn hidden">×</button>
+              <div id="productSuggestions" class="suggestions hidden"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="quantityInput">Количество (шт.)</label>
+            <div class="quantity-control">
+              <button id="decreaseBtn" class="btn btn--round">−</button>
+              <input id="quantityInput" class="form-control" type="number" step="1" min="1" inputmode="numeric">
+              <button id="increaseBtn" class="btn btn--round">+</button>
+            </div>
+          </div>
+          <div id="presetsContainer" class="presets"></div>
+          <div class="form-group">
+            <div class="sum-display">
+              <span>Сумма: </span><span id="sumAmount" class="sum-amount">0 ₽</span>
+            </div>
+          </div>
+          <button id="addRecordBtn" class="btn btn--primary btn--full">Добавить запись</button>
+          <div class="shift-form">
+            <h3 class="section-title">Ручная смена</h3>
+            <div class="form-inline">
+              <input id="manualShiftHours" class="form-control" type="number" step="0.5" min="0.5" placeholder="Часы">
+              <button id="addManualShiftBtn" class="btn btn--outline">Добавить смену</button>
+            </div>
+            <small class="text-muted">Добавляет часы в текущий месяц.</small>
+          </div>
+          <div class="records-list">
+            <div class="list-header">
+              <h3>Записи текущего месяца</h3>
+              <button id="exportCsvBtn" class="btn btn--sm btn--outline">📊 Экспорт CSV</button>
+            </div>
+            <div id="recordsList" class="records-items"></div>
+          </div>
         </section>
 
-        <!-- Статистика -->
         <section class="screen" data-screen="statistics">
-          <!-- ... без изменений ... -->
+          <h2>Статистика за текущий месяц</h2>
+          <div id="statsGrid" class="stats-grid"></div>
         </section>
 
-        <!-- История -->
         <section class="screen" data-screen="history">
-          <!-- ... без изменений ... -->
-        </section>
-
-      </div>
-    </main>
-  </div>
-
-  <!-- Настройки -->
-  <div id="settingsModal" class="modal">
-    <div class="modal__backdrop"></div>
-    <div class="modal__content">
-      <div class="modal__header">
-        <h2>Настройки</h2>
-        <button id="closeSettingsBtn" class="modal__close">×</button>
-      </div>
-      <div class="modal__body">
-        <div class="settings-tabs">
-          <button class="settings-tab settings-tab--active" data-tab="salary">Зарплата</button>
-          <button class="settings-tab" data-tab="products">Продукты</button>
-          <button class="settings-tab" data-tab="general">Общие</button>
-          <button class="settings-tab" data-tab="backup">Бэкап</button>
-        </div>
-        <div class="settings-content">
-          <!-- Salary, Products unchanged... -->
-
-          <div class="settings-panel" data-panel="general">
-            <div class="form-group">
-              <label for="themeSelect">Тема оформления</label>
-              <select id="themeSelect" class="form-control">
-                <option value="classic">Классическая</option>
-                <option value="dark">Тёмная</option>
-                <option value="light">Светлая</option>
+          <div class="history-header">
+            <h2>История действий</h2>
+            <div class="history-filters">
+              <input id="filterDate" class="form-control" type="date">
+              <select id="filterAction" class="form-control">
+                <option value="">Все действия</option>
+                <option value="add_record">Добавление записи</option>
+                <option value="delete_record">Удаление записи</option>
+                <option value="add_product">Добавление продукта</option>
+                <option value="settings">Изменение настроек</option>
+                <option value="add_shift">Добавление смены</option>
               </select>
-            </div>
-            <div class="form-group">
-              <label for="presetsInput">Пресеты количества</label>
-              <input id="presetsInput" class="form-control" type="text" placeholder="1,5,10,25,50">
+              <button id="exportHistoryBtn" class="btn btn--sm btn--outline">📄 Экспорт истории</button>
             </div>
           </div>
-
-          <div class="settings-panel" data-panel="backup">
-            <div class="backup-section">
-              <h4>Ручной бэкап</h4>
-              <button id="emailBackupBtn" class="btn btn--outline">📧 Email</button>
-            </div>
-            <div class="backup-section">
-              <h4>Авто-бэкап</h4>
-              <label class="checkbox-label">
-                <input id="autoBackupEnabled" type="checkbox">
-                Включить автоматический бэкап по Email
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal__footer">
-        <button id="saveSettingsBtn" class="btn btn--primary">Сохранить</button>
-        <button id="cancelSettingsBtn" class="btn btn--outline">Отмена</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Product Modal... -->
-
-  <script src="work-schedule.js"></script>
-  <script src="backup.js"></script>
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', ()=>navigator.serviceWorker.register('./service-worker.js'));
-    }
-  </script>
-</body>
-</html>
