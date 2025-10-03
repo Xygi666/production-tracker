@@ -11,16 +11,30 @@ class WorkScheduleManager {
     if (this.settings.workSchedule === 'off') return 0;
     
     const startDate = new Date(this.settings.scheduleStartDate);
-    const monthStart = new Date(year, month - 1, 1);
+    startDate.setHours(0, 0, 0, 0); // Обнуляем время
     
-    // Берём либо конец месяца, либо сегодня — что раньше
+    const monthStart = new Date(year, month - 1, 1);
+    monthStart.setHours(0, 0, 0, 0);
+    
+    // Берём МЕНЬШЕЕ из: конец месяца или сегодня
     const now = new Date();
-    const monthEnd = new Date(year, month, 0);
-    const endDate = now < monthEnd ? now : monthEnd;
+    now.setHours(0, 0, 0, 0);
+    
+    const monthEnd = new Date(year, month, 0); // Последний день месяца
+    monthEnd.setHours(0, 0, 0, 0);
+    
+    // Считаем только до вчерашнего дня включительно (не считаем сегодняшний день, если он не завершён)
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const endDate = yesterday < monthEnd ? yesterday : monthEnd;
+    
+    // Если считаем за будущий месяц или за месяц, который ещё не начался
+    if (endDate < monthStart) return 0;
     
     let totalHours = 0;
     
-    // Проходим только по дням до сегодняшней даты (включительно)
+    // Проходим по каждому дню от начала месяца до вчера
     for (let date = new Date(monthStart); date <= endDate; date.setDate(date.getDate() + 1)) {
       if (this.isWorkDay(date, startDate)) {
         totalHours += this.settings.hoursPerShift;
@@ -31,10 +45,12 @@ class WorkScheduleManager {
   }
   
   isWorkDay(currentDate, startDate) {
+    // Количество дней от даты начала графика
     const daysDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
     
     if (this.settings.workSchedule === '2/2') {
-      // 2 рабочих, 2 выходных
+      // Цикл: 2 рабочих, 2 выходных
+      // daysDiff % 4: 0,1 = работа; 2,3 = выходной
       return (daysDiff % 4) < 2;
     }
     
