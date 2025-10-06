@@ -1,6 +1,6 @@
-const CACHE_NAME = 'uchet2-cache-v3.3.0'; // ← ИЗМЕНЕНО с v3.2.9
+const CACHE_NAME = 'uchet2-cache-v3.3.0';
 const ASSETS = [
-  './','./index.html','./styles.css','./app.js','./work-schedule.js',
+  './','./index.html','./styles.css','./app.js',
   './manifest.json','./icon-192.png','./icon-512.png'
 ];
 
