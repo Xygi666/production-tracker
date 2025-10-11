@@ -46,20 +46,24 @@
               <div id="productSuggestions" class="suggestions hidden"></div>
             </div>
           </div>
+
           <div class="form-group">
             <label for="quantityInput">Количество (шт.)</label>
             <div class="quantity-control">
               <button id="decreaseBtn" class="btn btn--round">−</button>
-              <input id="quantityInput" class="form-control" type="number" step="1" min="1" inputmode="numeric">
+              <input id="quantityInput" class="form-control" type="number" step="1" inputmode="numeric" placeholder="Можно вводить отрицательные значения">
               <button id="increaseBtn" class="btn btn--round">+</button>
             </div>
           </div>
+
           <div id="presetsContainer" class="presets"></div>
+
           <div class="form-group">
             <div class="sum-display">
               <span>Сумма: </span><span id="sumAmount" class="sum-amount">0 ₽</span>
             </div>
           </div>
+
           <button id="addRecordBtn" class="btn btn--primary btn--full">Добавить запись</button>
 
           <div class="records-list">
@@ -86,6 +90,8 @@
                 <option value="add_record">Добавление записи</option>
                 <option value="delete_record">Удаление записи</option>
                 <option value="add_product">Добавление продукта</option>
+                <option value="edit_product">Изменение продукта</option>
+                <option value="delete_product">Удаление продукта</option>
                 <option value="settings">Изменение настроек</option>
               </select>
               <button id="exportHistoryBtn" class="btn btn--sm btn--outline">📄 Экспорт истории</button>
@@ -97,6 +103,7 @@
     </main>
   </div>
 
+  <!-- Модалка настроек -->
   <div id="settingsModal" class="modal">
     <div class="modal__backdrop"></div>
     <div class="modal__content">
@@ -166,6 +173,7 @@
     </div>
   </div>
 
+  <!-- Модалка продукта -->
   <div id="productModal" class="modal">
     <div class="modal__backdrop"></div>
     <div class="modal__content modal__content--sm">
@@ -182,21 +190,8 @@
           <label for="productPriceInput">Цена</label>
           <input id="productPriceInput" class="form-control" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
         </div>
+        <div class="form-group">
+          <label for="productDefectPriceInput">Цена брака (может быть отрицательной)</label>
+          <input id="productDefectPriceInput" class="form-control" type="number" step="0.01" inputmode="decimal" placeholder="-200">
+        </div>
       </div>
-      <div class="modal__footer">
-        <button id="saveProductBtn" class="btn btn--primary">Сохранить</button>
-        <button id="cancelProductBtn" class="btn btn--outline">Отмена</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-      });
-    }
-  </script>
-</body>
-</html>
