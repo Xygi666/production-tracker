@@ -1,4 +1,4 @@
-const CONFIG={VERSION:'3.4.1',STORAGE_KEYS:{PRODUCTS:'pt_products_v3',ENTRIES:'pt_entries_v3',SALARY:'pt_salary_v3',THEME:'pt_theme_v3',LOG:'pt_log_v3',PRESETS:'pt_presets_v3'},DEFAULT_CURRENCY:'₽',DATE_FORMAT:'ru-RU',MAX_LOG:1000};
+const CONFIG={VERSION:'3.4.2',STORAGE_KEYS:{PRODUCTS:'pt_products_v3',ENTRIES:'pt_entries_v3',SALARY:'pt_salary_v3',THEME:'pt_theme_v3',LOG:'pt_log_v3',PRESETS:'pt_presets_v3'},DEFAULT_CURRENCY:'₽',DATE_FORMAT:'ru-RU',MAX_LOG:1000};
 
 const Safe={
   g:(k,f=null)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){console.warn('Safe.g',k,e);return f}},
@@ -309,12 +309,18 @@ class App{
     const p=this.currentProduct();
     let qty=parseFloat(this.quantityInput?.value||1);
     if(isNaN(qty)) qty=1;
-    let price=p?p.price:0;
+    
+    let sum=0;
     if(qty<0 && typeof p?.priceDefect==='number' && !isNaN(p.priceDefect)){
-      price=p.priceDefect;
+      // Брак: модуль количества × цена брака (уже отрицательная)
+      sum=Math.abs(qty)*p.priceDefect;
+    }else if(p){
+      // Обычная продукция
+      sum=qty*p.price;
     }
+    
     if(this.sumAmount){
-      this.sumAmount.textContent=p?`${(qty*price).toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`:`0 ${CONFIG.DEFAULT_CURRENCY}`;
+      this.sumAmount.textContent=p?`${sum.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`:`0 ${CONFIG.DEFAULT_CURRENCY}`;
     }
   }
 
@@ -325,10 +331,16 @@ class App{
     if(!p) return alert('Выберите продукт (начните ввод и выберите из списка)');
     
     let price=p.price;
+    let sum=0;
+    
     if(qty<0 && typeof p.priceDefect==='number' && !isNaN(p.priceDefect)){
+      // Брак: модуль количества × цена брака (уже отрицательная)
       price=p.priceDefect;
+      sum=Math.abs(qty)*p.priceDefect;
+    }else{
+      // Обычная продукция
+      sum=qty*p.price;
     }
-    const sum=qty*price;
     
     const rec={id:Date.now(),productId:p.id,quantity:qty,price,sum,date:new Date().toISOString()};
     (this.data.entries=this.data.entries||[]).push(rec);
@@ -688,46 +700,4 @@ class App{
         const lines=csv.split('\n').filter(l=>l.trim());
         if(lines.length<2) return alert('Файл должен содержать заголовки и данные');
         
-        const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
-        const nameIdx=headers.findIndex(h=>h.toLowerCase().includes('назв')||h.toLowerCase().includes('name'));
-        const priceIdx=headers.findIndex(h=>h.toLowerCase().includes('цен')||h.toLowerCase().includes('price'));
-        
-        if(nameIdx===-1||priceIdx===-1) return alert('Файл должен содержать колонки с названием и ценой');
-        
-        let added=0;
-        for(let i=1;i<lines.length;i++){
-          const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
-          const name=cols[nameIdx]?.trim();
-          const price=parseFloat(cols[priceIdx]);
-          
-          if(name&&!isNaN(price)&&price>0){
-            const exists=(this.data.products||[]).some(p=>p.name.toLowerCase()===name.toLowerCase());
-            if(!exists){
-              (this.data.products=this.data.products||[]).push({
-                id:Date.now()+Math.random(),
-                name,
-                price,
-                priceDefect:null,
-                archived:false,
-                created:new Date().toISOString(),
-                favorite:false
-              });
-              added++;
-            }
-          }
-        }
-        
-        this.save();
-        this.renderProductsList();
-        this.updateProductSuggestions();
-        alert(`Импортировано продуктов: ${added}`);
-      }catch(err){
-        alert('Ошибка чтения файла');
-      }
-    };
-    reader.readAsText(file);
-  }
-}
-
-let app;
-document.addEventListener('DOMContentLoaded',()=>{app=new App();});
+        const headers=lines[0].split(',').map(h=>h.trim().
