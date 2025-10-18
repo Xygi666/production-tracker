@@ -50,7 +50,7 @@
             <label for="quantityInput">Количество (шт.)</label>
             <div class="quantity-control">
               <button id="decreaseBtn" class="btn btn--round">−</button>
-              <input id="quantityInput" class="form-control" type="number" step="1" inputmode="numeric" placeholder="Можно вводить отрицательные значения">
+              <input id="quantityInput" class="form-control" type="number" step="1" inputmode="numeric" placeholder="Можно вводить отрицательные">
               <button id="increaseBtn" class="btn btn--round">+</button>
             </div>
           </div>
@@ -98,7 +98,77 @@
     </main>
   </div>
 
-  <!-- Модалка продукта -->
+  <!-- Настройки -->
+  <div id="settingsModal" class="modal">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2>Настройки</h2>
+        <button id="closeSettingsBtn" class="modal__close">×</button>
+      </div>
+      <div class="modal__body">
+        <div class="settings-tabs">
+          <button class="settings-tab settings-tab--active" data-tab="salary">Зарплата</button>
+          <button class="settings-tab" data-tab="products">Продукты</button>
+          <button class="settings-tab" data-tab="general">Общие</button>
+          <button class="settings-tab" data-tab="backup">Бэкап</button>
+        </div>
+        <div class="settings-content">
+          <div class="settings-panel settings-panel--active" data-panel="salary">
+            <div class="form-group">
+              <label for="baseSalary">Оклад (₽)</label>
+              <input id="baseSalary" class="form-control" type="number" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label for="taxRate">Налог (%)</label>
+              <input id="taxRate" class="form-control" type="number" min="0" max="100" step="0.1">
+            </div>
+            <div class="form-group">
+              <label for="advanceAmount">Аванс (₽)</label>
+              <input id="advanceAmount" class="form-control" type="number" min="0" step="100">
+            </div>
+          </div>
+
+          <div class="settings-panel" data-panel="products">
+            <div class="products-header">
+              <button id="addProductBtn" class="btn btn--primary">Добавить продукт</button>
+              <button id="importProductsBtn" class="btn btn--outline">Импорт CSV</button>
+              <input id="importProductsFile" type="file" accept=".csv" hidden>
+            </div>
+            <div id="productsList" class="products-list"></div>
+          </div>
+
+          <div class="settings-panel" data-panel="general">
+            <div class="form-group">
+              <label for="themeSelect">Тема оформления</label>
+              <select id="themeSelect" class="form-control">
+                <option value="classic">Классическая</option>
+                <option value="dark">Тёмная</option>
+                <option value="light">Светлая</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="presetsInput">Пресеты количества (через запятую)</label>
+              <input id="presetsInput" class="form-control" type="text" placeholder="1,5,10,25,50">
+            </div>
+          </div>
+
+          <div class="settings-panel" data-panel="backup">
+            <div class="backup-section">
+              <h4>Ручной бэкап</h4>
+              <button id="emailBackupBtn" class="btn btn--outline">📧 Email</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button id="saveSettingsBtn" class="btn btn--primary">Сохранить</button>
+        <button id="cancelSettingsBtn" class="btn btn--outline">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Продукт -->
   <div id="productModal" class="modal">
     <div class="modal__backdrop"></div>
     <div class="modal__content modal__content--sm">
