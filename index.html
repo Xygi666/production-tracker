@@ -47,10 +47,10 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="quantityInput">Количество (шт.)</label>
+            <label for="quantityInput">Количество (шт.) — можно вводить отрицательные для брака</label>
             <div class="quantity-control">
               <button id="decreaseBtn" class="btn btn--round">−</button>
-              <input id="quantityInput" class="form-control" type="number" step="1" inputmode="numeric" placeholder="Можно вводить отрицательные">
+              <input id="quantityInput" class="form-control" type="number" step="1" inputmode="numeric" placeholder="1 или -1 для брака">
               <button id="increaseBtn" class="btn btn--round">+</button>
             </div>
           </div>
@@ -186,7 +186,7 @@
           <input id="productPriceInput" class="form-control" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
         </div>
         <div class="form-group">
-          <label for="productDefectPriceInput">Цена брака (может быть отрицательной)</label>
+          <label for="productDefectPriceInput">Цена брака (обычно отрицательная, например -200)</label>
           <input id="productDefectPriceInput" class="form-control" type="number" step="0.01" inputmode="decimal" placeholder="-200">
         </div>
       </div>
