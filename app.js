@@ -1,83 +1,107 @@
-:root{--primary:#2c3e50;--accent:#3498db;--bg:#f5f6f8;--surface:#fff;--text:#2c3e50;--text-2:#7f8c8d;--border:#e5e7eb;--ok:#27ae60;--err:#e74c3c;--shadow:0 2px 12px rgba(0,0,0,.08)}
-body[data-theme="dark"]{--bg:#1e1e1e;--surface:#2a2a2a;--text:#eaeaea;--text-2:#a8a8a8;--border:#3a3a3a;--accent:#4e9af1}
-body[data-theme="light"]{--bg:#ffffff;--surface:#fefefe;--text:#1a1a1a;--text-2:#565656;--border:#e1e1e1;--accent:#1976d2}
-*{box-sizing:border-box}html,body{height:100%}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--text);background:var(--bg)}
-.app{min-height:100%;display:flex;flex-direction:column}
-.header{position:sticky;top:0;z-index:10;background:var(--surface);box-shadow:var(--shadow)}
-.header__container{max-width:720px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
-.header__brand{display:flex;flex-direction:column;gap:4px}
-.header__title{margin:0;font-size:20px;color:var(--primary)}
-.header__subtitle{font-size:14px;color:var(--text-2)}
-.header__actions{display:flex;gap:8px}
-.nav{background:var(--surface);border-bottom:1px solid var(--border)}
-.nav__container{max-width:720px;margin:0 auto;padding:0 16px;display:flex}
-.nav__tab{flex:1;padding:12px 8px;border:0;background:transparent;cursor:pointer;color:var(--text-2);border-bottom:3px solid transparent}
-.nav__tab--active{color:var(--accent);border-bottom-color:var(--accent)}
-.main{flex:1}
-.main__container{max-width:720px;margin:0 auto;padding:16px}
-.screen{display:none !important}
-.screen--active{display:block !important}
-.form-group{margin:12px 0}
-.form-control{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:16px}
-.form-inline{display:flex;gap:8px;align-items:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 16px;border-radius:10px;border:1px solid transparent;background:var(--surface);cursor:pointer;color:var(--text)}
-.btn--primary{background:var(--accent);color:#fff}
-.btn--outline{border-color:var(--border)}
-.btn--danger{background:var(--err);color:#fff}
-.btn--sm{padding:8px 10px;font-size:12px}
-.btn--round{width:44px;height:44px;border-radius:50%;padding:0}
-.btn--full{width:100%}
-.product-search{position:relative}
-.search-clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:0;background:var(--err);color:#fff;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5}
-.hidden{display:none !important}
-.suggestions{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);max-height:260px;overflow-y:auto;z-index:20}
-.suggestion-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-.suggestion-item:last-child{border-bottom:0}
-.suggestion-item:hover{background:#f0f6ff}
-.suggestion-star{cursor:pointer;color:#ccc;font-size:18px;min-width:24px}
-.suggestion-star--favorite{color:#ffd700}
-.suggestion-text{flex:1}
-.quantity-control{display:flex;align-items:center;gap:10px}
-.presets{display:flex;flex-wrap:wrap;gap:8px}
-.preset-btn{padding:8px 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);cursor:pointer;color:var(--text)}
-.sum-display{padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:flex;justify-content:center;gap:8px}
-.sum-amount{font-weight:700;color:var(--ok)}
-.section-title{margin:0 0 8px;font-size:16px}
-.text-muted{color:var(--text-2);font-size:12px}
-.records-list{margin-top:24px}
-.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.records-items{display:flex;flex-direction:column;gap:10px}
-.record-item{display:flex;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
-.record-info{flex:1}
-.record-title{font-weight:700;margin-bottom:4px}
-.record-details{color:var(--text-2);font-size:14px;margin-bottom:2px}
-.record-actions{display:flex;gap:4px;align-items:flex-start}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow);text-align:center}
-.stat-value{font-weight:800;margin-bottom:6px;color:var(--accent);font-size:18px}
-.stat-card--income .stat-value{color:#27ae60}
-.stat-card--expense .stat-value{color:#e74c3c}
-.stat-card--neutral .stat-value{color:var(--text)}
-.stat-label{font-size:14px;color:var(--text-2)}
-/* подсветка сумм записей */
-.record-amount.plus{color:#27ae60;font-weight:700}
-.record-amount.minus{color:#e74c3c;font-weight:700}
-.modal{position:fixed;inset:0;display:none;z-index:100}
-.modal--active{display:flex}
-.modal__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
-.modal__content{position:relative;margin:auto;width:min(720px,92%);max-height:90vh;overflow:hidden;background:var(--surface);color:var(--text);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column}
-.modal__content--sm{width:min(420px,92%)}
-.modal__header,.modal__footer{padding:12px 16px;border-bottom:1px solid var(--border)}
-.modal__footer{border-top:1px solid var(--border);border-bottom:0;display:flex;gap:8px;justify-content:flex-end}
-.modal__body{padding:12px 16px;overflow:auto}
-.modal__close{border:0;background:transparent;font-size:22px;cursor:pointer;color:var(--text)}
-.settings-tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px}
-.settings-tab{flex:1;border:0;background:transparent;padding:10px;border-bottom:2px solid transparent;color:var(--text-2);cursor:pointer}
-.settings-tab--active{color:var(--accent);border-bottom-color:var(--accent)}
-.settings-panel{display:none}
-.settings-panel--active{display:block}
-.products-header{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.products-list{display:flex;flex-direction:column;gap:10px}
-.checkbox-label{display:flex;gap:8px;align-items:center;cursor:pointer}
-.backup-section{margin-bottom:20px}
+const CONFIG = { /* ...оставьте как в вашей версии... */ };
+
+class App {
+  constructor() {
+    // ...все предыдущие свойства и DOM элементы без изменений...
+    this.q = s=>document.querySelector(s); this.qa=s=>document.querySelectorAll(s);
+    this.cacheDOM(); this.bindEvents(); this.applyTheme('classic');
+    // ...ваши renderPresets, инициализации...
+    this.renderRecords();
+  }
+
+  // ...cacheDOM, bindEvents...
+
+  // Добавлено: получение поля input для цены брака
+  cacheDOM() {
+    // ...другой ваш код...
+    this.productDefectPriceInput = this.q('#productDefectPriceInput');
+  }
+
+  // calculateSum с учётом цены брака
+  calculateSum() {
+    const p = this.currentProduct();
+    let qty = parseFloat(this.quantityInput?.value || 1);
+    if (isNaN(qty)) qty = 1;
+    let price = p ? p.price : 0;
+    if (qty < 0 && typeof p?.priceDefect === 'number' && !isNaN(p.priceDefect)) {
+      price = p.priceDefect;
+    }
+    this.sumAmount.textContent = p ? `${(qty * price).toFixed(2)} ₽` : `0 ₽`;
+  }
+
+  addRecord() {
+    const p = this.currentProduct();
+    let qty = parseFloat(this.quantityInput?.value || 1);
+    if (!p) return alert('Выберите продукт');
+    let price = p.price;
+    if (qty < 0 && typeof p.priceDefect === 'number' && !isNaN(p.priceDefect)) {
+      price = p.priceDefect;
+    }
+    const sum = qty * price;
+    const rec = {id: Date.now(), productId: p.id, quantity: qty, price, sum, date: new Date().toISOString()};
+    this.data.entries = (this.data.entries||[]); this.data.entries.push(rec);
+    // ...save, clear, render...
+    this.save(); this.quantityInput.value = ""; this.calculateSum(); this.renderRecords();
+  }
+
+  // Редактирование продукта с ценой брака
+  openProductModal(productId=null) {
+    this.editingProductId = productId;
+    if(productId){
+      const p = (this.data.products||[]).find(x=>x.id===productId);
+      this.productNameInput.value=p.name;
+      this.productPriceInput.value=p.price;
+      this.productDefectPriceInput.value=(typeof p.priceDefect==='number' ? p.priceDefect : '');
+    } else {
+      this.productNameInput.value = '';
+      this.productPriceInput.value = '';
+      this.productDefectPriceInput.value = '';
+    }
+    this.productModal.classList.add('modal--active');
+  }
+  saveProduct() {
+    const name = this.productNameInput.value.trim();
+    const price = parseFloat(this.productPriceInput.value);
+    const defectPrice = parseFloat(this.productDefectPriceInput.value);
+    if(!name) return alert('Введите название');
+    if(isNaN(price)||price<=0) return alert('Некорректная цена');
+    let priceDefect = isNaN(defectPrice) ? null : defectPrice;
+    if(this.editingProductId){
+      const p = (this.data.products||[]).find(x=>x.id===this.editingProductId);
+      p.name = name; p.price = price; p.priceDefect = priceDefect;
+    } else {
+      const p = {id:Date.now(),name,price,priceDefect,archived:false,created:new Date().toISOString(),favorite:false};
+      (this.data.products=this.data.products||[]).push(p);
+    }
+    this.save(); this.closeProductModal(); this.renderProductsList(); this.updateProductSuggestions();
+  }
+
+  // В renderRecords выделяем сумму цветом
+  renderRecords() {
+    if(!this.recordsList) return;
+    const now = new Date(); const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const list=(this.data.entries||[]).filter(e=>{const d=new Date(e.date);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;}).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    this.recordsList.innerHTML='';
+    for(const r of list){
+      const p = (this.data.products||[]).find(x=>x.id===r.productId); const name = p?p.name:'?';
+      const d = new Date(r.date);
+      const amountClass = r.sum >= 0 ? 'plus' : 'minus';
+      const row = document.createElement('div'); row.className='record-item';
+      row.innerHTML=`
+        <div class="record-info">
+          <div class="record-title">${name}</div>
+          <div class="record-details">${r.quantity} × ${r.price}₽ = <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}₽</span></div>
+          <div class="record-details">${d.toLocaleDateString()} ${d.toLocaleTimeString().slice(0,5)}</div>
+        </div>
+        <div class="record-actions"><button class="btn btn--sm btn--danger">🗑️</button></div>
+      `;
+      row.querySelector('button').onclick=()=>this.deleteRecord(r.id);
+      this.recordsList.appendChild(row);
+    }
+  }
+
+  // ... остальные методы как в старой версии ...
+}
+
+let app;
+document.addEventListener('DOMContentLoaded', ()=>{app=new App();});
