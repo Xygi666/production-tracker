@@ -53,15 +53,12 @@ class App{
     this.settingsBtn=this.q('#settingsBtn');
     this.exportJsonBtn=this.q('#exportJsonBtn');
     this.reloadBtn=this.q('#reloadBtn');
-
     this.navTabs=this.qa('.nav__tab');
     this.screens=this.qa('.screen');
-
     this.productSearch=this.q('#productSearch');
     this.clearSearchBtn=this.q('#clearSearchBtn');
     this.productSuggestions=this.q('#productSuggestions');
     this.selectedProductId=null;
-
     this.quantityInput=this.q('#quantityInput');
     this.decreaseBtn=this.q('#decreaseBtn');
     this.increaseBtn=this.q('#increaseBtn');
@@ -70,31 +67,26 @@ class App{
     this.addRecordBtn=this.q('#addRecordBtn');
     this.recordsList=this.q('#recordsList');
     this.exportCsvBtn=this.q('#exportCsvBtn');
-
     this.statsGrid=this.q('#statsGrid');
     this.filterDate=this.q('#filterDate');
     this.filterAction=this.q('#filterAction');
     this.historyList=this.q('#historyList');
     this.exportHistoryBtn=this.q('#exportHistoryBtn');
-
     this.settingsModal=this.q('#settingsModal');
     this.closeSettingsBtn=this.q('#closeSettingsBtn');
     this.saveSettingsBtn=this.q('#saveSettingsBtn');
     this.cancelSettingsBtn=this.q('#cancelSettingsBtn');
     this.settingsTabs=this.qa('.settings-tab');
     this.settingsPanels=this.qa('.settings-panel');
-
     this.baseSalary=this.q('#baseSalary');
     this.taxRate=this.q('#taxRate');
     this.advanceAmount=this.q('#advanceAmount');
-
     this.addProductBtn=this.q('#addProductBtn');
     this.importProductsBtn=this.q('#importProductsBtn');
     this.importProductsFile=this.q('#importProductsFile');
     this.productsList=this.q('#productsList');
     this.themeSelect=this.q('#themeSelect');
     this.presetsInput=this.q('#presetsInput');
-
     this.productModal=this.q('#productModal');
     this.productModalTitle=this.q('#productModalTitle');
     this.productNameInput=this.q('#productNameInput');
@@ -103,28 +95,23 @@ class App{
     this.closeProductBtn=this.q('#closeProductBtn');
     this.saveProductBtn=this.q('#saveProductBtn');
     this.cancelProductBtn=this.q('#cancelProductBtn');
-
     this.emailBackupBtn=this.q('#emailBackupBtn');
   }
 
   bindEvents(){
     this.navTabs.forEach(t=>t.addEventListener('click',e=>this.switchScreen(e.currentTarget.dataset.tab)));
-
     this.settingsBtn?.addEventListener('click',()=>this.openSettings());
     this.exportJsonBtn?.addEventListener('click',()=>this.exportJson());
     this.reloadBtn?.addEventListener('click',()=>location.reload());
-
     this.productSearch?.addEventListener('input',()=>this.updateProductSuggestions());
     this.productSearch?.addEventListener('focus',()=>this.updateProductSuggestions());
     this.clearSearchBtn?.addEventListener('click',()=>this.clearSearch());
-    
     document.addEventListener('click',e=>{
       if(!this.productSuggestions) return;
       if(!this.productSuggestions.contains(e.target) && e.target!==this.productSearch && e.target!==this.clearSearchBtn){
         this.hideSuggestions();
       }
     });
-
     if(this.quantityInput){
       this.quantityInput.addEventListener('input',()=>this.calculateSum());
     }
@@ -142,24 +129,19 @@ class App{
       this.quantityInput.value=v;
       this.calculateSum();
     });
-
     this.addRecordBtn?.addEventListener('click',()=>this.addRecord());
     this.exportCsvBtn?.addEventListener('click',()=>this.exportCsv());
-
     this.filterDate?.addEventListener('change',()=>this.renderHistory());
     this.filterAction?.addEventListener('change',()=>this.renderHistory());
     this.exportHistoryBtn?.addEventListener('click',()=>this.exportHistory());
-
     this.closeSettingsBtn?.addEventListener('click',()=>this.closeSettings());
     this.cancelSettingsBtn?.addEventListener('click',()=>this.closeSettings());
     this.saveSettingsBtn?.addEventListener('click',()=>this.saveSettings());
-    
     this.settingsModal?.addEventListener('click',e=>{
       if(e.target===this.settingsModal || e.target.classList.contains('modal__backdrop')){
         this.closeSettings();
       }
     });
-
     this.settingsTabs.forEach(tab=>{
       tab.addEventListener('click',()=>{
         const name=tab.dataset.tab;
@@ -168,27 +150,22 @@ class App{
         if(name==='products') this.renderProductsList();
       });
     });
-
     this.themeSelect?.addEventListener('change',()=>{
       this.data.theme=this.themeSelect.value;
       this.applyTheme(this.data.theme);
       Safe.sr(CONFIG.STORAGE_KEYS.THEME,this.data.theme);
     });
-
     this.addProductBtn?.addEventListener('click',()=>this.openProductModal());
     this.importProductsBtn?.addEventListener('click',()=>this.importProductsFile?.click());
     this.importProductsFile?.addEventListener('change',e=>this.importProducts(e.target.files[0]));
-
     this.closeProductBtn?.addEventListener('click',()=>this.closeProductModal());
     this.cancelProductBtn?.addEventListener('click',()=>this.closeProductModal());
     this.saveProductBtn?.addEventListener('click',()=>this.saveProduct());
-    
     this.productModal?.addEventListener('click',e=>{
       if(e.target===this.productModal || e.target.classList.contains('modal__backdrop')){
         this.closeProductModal();
       }
     });
-
     this.emailBackupBtn?.addEventListener('click',()=>this.shareBackup());
   }
 
@@ -206,10 +183,8 @@ class App{
     if(name==='history') this.renderHistory();
   }
 
-  applyTheme(theme){
-    document.body.setAttribute('data-theme',theme);
-  }
-
+  applyTheme(theme){document.body.setAttribute('data-theme',theme)}
+  
   clearSearch(){
     if(!this.productSearch) return;
     this.productSearch.value='';
@@ -266,9 +241,7 @@ class App{
     this.selectedProductId=exact?exact.id:null;
   }
 
-  hideSuggestions(){
-    this.productSuggestions?.classList.add('hidden');
-  }
+  hideSuggestions(){this.productSuggestions?.classList.add('hidden')}
 
   toggleFavorite(productId){
     const p=(this.data.products||[]).find(x=>x.id===productId);
@@ -309,16 +282,12 @@ class App{
     const p=this.currentProduct();
     let qty=parseFloat(this.quantityInput?.value||1);
     if(isNaN(qty)) qty=1;
-    
     let sum=0;
     if(qty<0 && typeof p?.priceDefect==='number' && !isNaN(p.priceDefect)){
-      // Брак: модуль количества × цена брака (уже отрицательная)
       sum=Math.abs(qty)*p.priceDefect;
     }else if(p){
-      // Обычная продукция
       sum=qty*p.price;
     }
-    
     if(this.sumAmount){
       this.sumAmount.textContent=p?`${sum.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`:`0 ${CONFIG.DEFAULT_CURRENCY}`;
     }
@@ -329,24 +298,18 @@ class App{
     let qty=parseFloat(this.quantityInput?.value||1);
     if(isNaN(qty)) qty=1;
     if(!p) return alert('Выберите продукт (начните ввод и выберите из списка)');
-    
     let price=p.price;
     let sum=0;
-    
     if(qty<0 && typeof p.priceDefect==='number' && !isNaN(p.priceDefect)){
-      // Брак: модуль количества × цена брака (уже отрицательная)
       price=p.priceDefect;
       sum=Math.abs(qty)*p.priceDefect;
     }else{
-      // Обычная продукция
       sum=qty*p.price;
     }
-    
     const rec={id:Date.now(),productId:p.id,quantity:qty,price,sum,date:new Date().toISOString()};
     (this.data.entries=this.data.entries||[]).push(rec);
     this.log('add_record',rec,'Добавлена запись');
     this.save();
-    
     if(this.quantityInput) this.quantityInput.value='';
     this.calculateSum();
     this.renderRecords();
@@ -361,28 +324,17 @@ class App{
       const d=new Date(e.date);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;
     }).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    
     const income=list.reduce((s,r)=>s+r.sum,0);
     if(this.monthSumHeader) this.monthSumHeader.textContent=`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
-    
     this.recordsList.innerHTML=list.length?'':'<div class="record-item"><div class="record-info"><div class="record-title">Записей за текущий месяц нет</div></div></div>';
-    
     list.forEach(r=>{
       const p=(this.data.products||[]).find(x=>x.id===r.productId);
       const name=p?p.name:'Неизвестный продукт';
       const d=new Date(r.date);
       const amountClass=r.sum>=0?'plus':'minus';
-      
       const row=document.createElement('div');
       row.className='record-item';
-      row.innerHTML=`
-        <div class="record-info">
-          <div class="record-title">${this.esc(name)}</div>
-          <div class="record-details">${r.quantity} × ${r.price}${CONFIG.DEFAULT_CURRENCY} = <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</span></div>
-          <div class="record-details">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div>
-        </div>
-        <div class="record-actions"><button class="btn btn--sm btn--danger">🗑️</button></div>
-      `;
+      row.innerHTML=`<div class="record-info"><div class="record-title">${this.esc(name)}</div><div class="record-details">${r.quantity} × ${r.price}${CONFIG.DEFAULT_CURRENCY} = <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</span></div><div class="record-details">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div></div><div class="record-actions"><button class="btn btn--sm btn--danger">🗑️</button></div>`;
       row.querySelector('button').addEventListener('click',()=>this.deleteRecord(r.id));
       this.recordsList.appendChild(row);
     });
@@ -410,14 +362,12 @@ class App{
       const d=new Date(e.date);
       return d.getFullYear()===y && (d.getMonth()+1)===m;
     });
-    
     const income=month.reduce((s,r)=>s+r.sum,0);
     const base=+this.data.salary.baseSalary||0;
     const tax=(+this.data.salary.taxRate||0)/100;
     const adv=+this.data.salary.advanceAmount||0;
     const taxAmount=(base+income)*tax;
     const finalAmount=(base+income)-taxAmount-adv;
-    
     const cards=[
       {label:'Доход (выручка)',value:`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:'income'},
       {label:'Оклад',value:`${base.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:'neutral'},
@@ -425,7 +375,6 @@ class App{
       {label:'Аванс',value:`${adv.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:'expense'},
       {label:'На руки (итог)',value:`${finalAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:finalAmount>=0?'income':'expense'}
     ];
-    
     this.statsGrid.innerHTML='';
     cards.forEach(c=>{
       const el=document.createElement('div');
@@ -433,7 +382,6 @@ class App{
       el.innerHTML=`<div class="stat-value">${c.value}</div><div class="stat-label">${c.label}</div>`;
       this.statsGrid.appendChild(el);
     });
-    
     if(this.monthSumHeader) this.monthSumHeader.textContent=`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
     if(this.finalAmountHeader) this.finalAmountHeader.textContent=`${finalAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
   }
@@ -450,9 +398,7 @@ class App{
     this.settingsModal.classList.add('modal--active');
   }
 
-  closeSettings(){
-    this.settingsModal?.classList.remove('modal--active');
-  }
+  closeSettings(){this.settingsModal?.classList.remove('modal--active')}
 
   saveSettings(){
     this.data.salary={
@@ -460,17 +406,14 @@ class App{
       taxRate:parseFloat(this.taxRate?.value)||0,
       advanceAmount:parseFloat(this.advanceAmount?.value)||0
     };
-    
     const theme=this.themeSelect?.value||this.data.theme;
     if(theme!==this.data.theme){
       this.data.theme=theme;
       this.applyTheme(theme);
       Safe.sr(CONFIG.STORAGE_KEYS.THEME,theme);
     }
-    
     const presets=(this.presetsInput?.value||'').split(',').map(x=>parseFloat(x.trim())).filter(x=>!isNaN(x)&&x>0);
     this.data.presets=presets.length?presets:[1,5,10,25,50];
-    
     this.log('settings',this.data.salary,'Изменены настройки');
     this.save();
     this.closeSettings();
@@ -507,12 +450,9 @@ class App{
     const name=this.productNameInput?.value?.trim();
     const price=parseFloat(this.productPriceInput?.value);
     const defectPrice=parseFloat(this.productDefectPriceInput?.value);
-    
     if(!name) return alert('Введите название продукта');
     if(isNaN(price)||price<=0) return alert('Введите корректную цену');
-    
     const priceDefect=isNaN(defectPrice)?null:defectPrice;
-    
     if(this.editingProductId){
       const p=(this.data.products||[]).find(x=>x.id===this.editingProductId);
       if(p){
@@ -526,7 +466,6 @@ class App{
       (this.data.products=this.data.products||[]).push(p);
       this.log('add_product',p,'Добавлен продукт');
     }
-    
     this.save();
     this.closeProductModal();
     this.renderProductsList();
@@ -540,18 +479,7 @@ class App{
       const row=document.createElement('div');
       row.className='record-item';
       const star=p.favorite?'⭐':'☆';
-      row.innerHTML=`
-        <div class="record-info">
-          <div class="record-title">${star} ${this.esc(p.name)}</div>
-          <div class="record-details">Цена: ${p.price}${CONFIG.DEFAULT_CURRENCY}${typeof p.priceDefect==='number'?' | Брак: '+p.priceDefect+CONFIG.DEFAULT_CURRENCY:''}</div>
-        </div>
-        <div class="record-actions">
-          <button class="btn btn--sm btn--outline" data-a="fav">${p.favorite?'Убрать':'Избранное'}</button>
-          <button class="btn btn--sm btn--outline" data-a="edit">Изменить</button>
-          <button class="btn btn--sm btn--outline" data-a="toggle">${p.archived?'Восстановить':'Архив'}</button>
-          <button class="btn btn--sm btn--danger" data-a="del">Удалить</button>
-        </div>
-      `;
+      row.innerHTML=`<div class="record-info"><div class="record-title">${star} ${this.esc(p.name)}</div><div class="record-details">Цена: ${p.price}${CONFIG.DEFAULT_CURRENCY}${typeof p.priceDefect==='number'?' | Брак: '+p.priceDefect+CONFIG.DEFAULT_CURRENCY:''}</div></div><div class="record-actions"><button class="btn btn--sm btn--outline" data-a="fav">${p.favorite?'Убрать':'Избранное'}</button><button class="btn btn--sm btn--outline" data-a="edit">Изменить</button><button class="btn btn--sm btn--outline" data-a="toggle">${p.archived?'Восстановить':'Архив'}</button><button class="btn btn--sm btn--danger" data-a="del">Удалить</button></div>`;
       row.querySelector('[data-a="fav"]').addEventListener('click',()=>this.toggleFavorite(p.id));
       row.querySelector('[data-a="edit"]').addEventListener('click',()=>this.openProductModal(p.id));
       row.querySelector('[data-a="toggle"]').addEventListener('click',()=>this.toggleProduct(p.id));
@@ -602,20 +530,12 @@ class App{
     if(df) list=list.filter(e=>new Date(e.timestamp).toISOString().slice(0,10)===df);
     if(af) list=list.filter(e=>e.action===af);
     list.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-    
     this.historyList.innerHTML=list.length?'':'<div class="record-item"><div class="record-info"><div class="record-title">История пуста</div></div></div>';
-    
     list.forEach(e=>{
       const d=new Date(e.timestamp);
       const row=document.createElement('div');
       row.className='record-item';
-      row.innerHTML=`
-        <div class="record-info">
-          <div class="record-title">${this.esc(this.actionName(e.action))}</div>
-          <div class="record-details">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div>
-          <div class="record-details">${this.esc(e.details||'')}</div>
-        </div>
-      `;
+      row.innerHTML=`<div class="record-info"><div class="record-title">${this.esc(this.actionName(e.action))}</div><div class="record-details">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div><div class="record-details">${this.esc(e.details||'')}</div></div>`;
       this.historyList.appendChild(row);
     });
   }
@@ -628,7 +548,6 @@ class App{
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;
     });
     if(!list.length) return alert('Нет записей для экспорта');
-    
     let csv='\ufeffДата,Продукт,Количество,Цена,Сумма\n';
     list.forEach(r=>{
       const p=(this.data.products||[]).find(x=>x.id===r.productId);
@@ -636,7 +555,6 @@ class App{
       const date=new Date(r.date).toLocaleDateString(CONFIG.DATE_FORMAT);
       csv+=`"${date}","${name}","${r.quantity}","${r.price}","${r.sum.toFixed(2)}"\n`;
     });
-    
     this.download(csv,`export-${ym}.csv`,'text/csv;charset=utf-8;');
   }
 
@@ -699,5 +617,42 @@ class App{
         const csv=e.target.result;
         const lines=csv.split('\n').filter(l=>l.trim());
         if(lines.length<2) return alert('Файл должен содержать заголовки и данные');
-        
-        const headers=lines[0].split(',').map(h=>h.trim().
+        const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+        const nameIdx=headers.findIndex(h=>h.toLowerCase().includes('назв')||h.toLowerCase().includes('name'));
+        const priceIdx=headers.findIndex(h=>h.toLowerCase().includes('цен')||h.toLowerCase().includes('price'));
+        if(nameIdx===-1||priceIdx===-1) return alert('Файл должен содержать колонки с названием и ценой');
+        let added=0;
+        for(let i=1;i<lines.length;i++){
+          const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+          const name=cols[nameIdx]?.trim();
+          const price=parseFloat(cols[priceIdx]);
+          if(name&&!isNaN(price)&&price>0){
+            const exists=(this.data.products||[]).some(p=>p.name.toLowerCase()===name.toLowerCase());
+            if(!exists){
+              (this.data.products=this.data.products||[]).push({
+                id:Date.now()+Math.random(),
+                name,
+                price,
+                priceDefect:null,
+                archived:false,
+                created:new Date().toISOString(),
+                favorite:false
+              });
+              added++;
+            }
+          }
+        }
+        this.save();
+        this.renderProductsList();
+        this.updateProductSuggestions();
+        alert(`Импортировано продуктов: ${added}`);
+      }catch(err){
+        alert('Ошибка чтения файла');
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+let app;
+document.addEventListener('DOMContentLoaded',()=>{app=new App();});
