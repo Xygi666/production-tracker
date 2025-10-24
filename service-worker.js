@@ -1,27 +1,104 @@
-const CACHE_NAME = 'uchet2-cache-v3.3.0';
+const CACHE_NAME = 'uchet-cache-v3.4.3';
 const ASSETS = [
-  './','./index.html','./styles.css','./app.js',
-  './manifest.json','./icon-192.png','./icon-512.png'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+// Установка: кэшируем все файлы
+self.addEventListener('install', event => {
+  console.log('[SW] Installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('[SW] Caching assets');
+        return cache.addAll(ASSETS);
+      })
+      .then(() => self.skipWaiting())
+      .catch(err => console.error('[SW] Install failed:', err))
+  );
 });
-self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>k===CACHE_NAME?undefined:caches.delete(k)))).then(()=>self.clients.claim()));
+
+// Активация: удаляем старые кэши
+self.addEventListener('activate', event => {
+  console.log('[SW] Activating...');
+  event.waitUntil(
+    caches.keys()
+      .then(keys => {
+        return Promise.all(
+          keys.map(key => {
+            if (key !== CACHE_NAME) {
+              console.log('[SW] Deleting old cache:', key);
+              return caches.delete(key);
+            }
+          })
+        );
+      })
+      .then(() => self.clients.claim())
+  );
 });
-self.addEventListener('fetch',event=>{
-  const req=event.request;
-  if(req.method!=='GET') return;
-  if(req.destination==='document'){
-    event.respondWith(fetch(req).then(res=>{
-      const clone=res.clone(); caches.open(CACHE_NAME).then(c=>c.put(req,clone)); return res;
-    }).catch(()=>caches.match('./index.html')));
-    return;
+
+// Fetch: сначала пытаемся получить из кэша, затем из сети
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  
+  // Игнорируем не-GET запросы
+  if (request.method !== 'GET') return;
+
+  event.respondWith(
+    caches.match(request)
+      .then(cachedResponse => {
+        if (cachedResponse) {
+          console.log('[SW] Serving from cache:', request.url);
+          return cachedResponse;
+        }
+        
+        // Если в кэше нет, загружаем из сети и кэшируем
+        return fetch(request)
+          .then(networkResponse => {
+            // Проверяем валидность ответа
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'opaque') {
+              return networkResponse;
+            }
+            
+            // Клонируем ответ для кэша
+            const responseToCache = networkResponse.clone();
+            
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(request, responseToCache);
+              });
+            
+            return networkResponse;
+          })
+          .catch(err => {
+            console.error('[SW] Fetch failed, serving offline fallback:', err);
+            
+            // Если запрос на HTML-страницу, возвращаем index.html из кэша
+            if (request.destination === 'document') {
+              return caches.match('./index.html');
+            }
+            
+            // Для остальных ресурсов возвращаем пустой ответ
+            return new Response('Offline', {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: new Headers({
+                'Content-Type': 'text/plain'
+              })
+            });
+          });
+      })
+  );
+});
+
+// Обработка сообщений (для принудительного обновления)
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
-  event.respondWith(caches.match(req).then(c=>c||fetch(req).then(res=>{
-    if(!res||res.status!==200||res.type==='opaque') return res;
-    const clone=res.clone(); caches.open(CACHE_NAME).then(cache=>cache.put(req,clone)); return res;
-  }).catch(()=>new Response('',{status:408,statusText:'Offline'}))));
 });
-self.addEventListener('message',e=>{ if(e.data?.type==='SKIP_WAITING') self.skipWaiting(); });
