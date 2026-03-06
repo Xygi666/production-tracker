@@ -27,6 +27,11 @@ class App{
       });
     }
 
+    // Добавляем поддержку поля in1C для существующих записей
+    this.data.entries.forEach(e=>{
+      if(e.in1C===undefined) e.in1C=false;
+    });
+
     this.q=s=>document.querySelector(s);
     this.qa=s=>document.querySelectorAll(s);
     
@@ -306,7 +311,7 @@ class App{
     }else{
       sum=qty*p.price;
     }
-    const rec={id:Date.now(),productId:p.id,quantity:qty,price,sum,date:new Date().toISOString()};
+    const rec={id:Date.now(),productId:p.id,quantity:qty,price,sum,date:new Date().toISOString(),in1C:false};
     (this.data.entries=this.data.entries||[]).push(rec);
     this.log('add_record',rec,'Добавлена запись');
     this.save();
@@ -324,9 +329,12 @@ class App{
       const d=new Date(e.date);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;
     }).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    
     const income=list.reduce((s,r)=>s+r.sum,0);
     if(this.monthSumHeader) this.monthSumHeader.textContent=`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
+    
     this.recordsList.innerHTML=list.length?'':'<div class="record-item"><div class="record-info"><div class="record-title">Записей за текущий месяц нет</div></div></div>';
+    
     list.forEach(r=>{
       const p=(this.data.products||[]).find(x=>x.id===r.productId);
       const name=p?p.name:'Неизвестный продукт';
@@ -334,8 +342,37 @@ class App{
       const amountClass=r.sum>=0?'plus':'minus';
       const row=document.createElement('div');
       row.className='record-item';
-      row.innerHTML=`<div class="record-info"><div class="record-title">${this.esc(name)}</div><div class="record-details">${r.quantity} × ${r.price}${CONFIG.DEFAULT_CURRENCY} = <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</span></div><div class="record-details">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div></div><div class="record-actions"><button class="btn btn--sm btn--danger">🗑️</button></div>`;
-      row.querySelector('button').addEventListener('click',()=>this.deleteRecord(r.id));
+      
+      row.innerHTML=`
+        <div class="record-info">
+          <div class="record-title">${this.esc(name)}</div>
+          <div class="record-details">
+            ${r.quantity} × ${r.price}${CONFIG.DEFAULT_CURRENCY} = 
+            <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</span>
+          </div>
+          <div class="record-details">
+            ${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}
+          </div>
+          <div class="record-details">
+            <label class="record-1c">
+              <input type="checkbox" ${r.in1C?'checked':''} data-id="${r.id}">
+              Занесено в 1С
+            </label>
+          </div>
+        </div>
+        <div class="record-actions">
+          <button class="btn btn--sm btn--danger">🗑️</button>
+        </div>
+      `;
+      
+      const checkbox=row.querySelector('input[type="checkbox"]');
+      if(checkbox){
+        checkbox.addEventListener('change',(e)=>{
+          this.toggle1C(r.id,e.target.checked);
+        });
+      }
+      
+      row.querySelector('.btn--danger').addEventListener('click',()=>this.deleteRecord(r.id));
       this.recordsList.appendChild(row);
     });
   }
@@ -350,6 +387,15 @@ class App{
       this.save();
       this.renderRecords();
       this.renderStatistics();
+    }
+  }
+
+  toggle1C(id,checked){
+    const entry=(this.data.entries||[]).find(e=>e.id===id);
+    if(entry){
+      entry.in1C=checked;
+      this.save();
+      this.log('edit_record',entry,checked?'Отмечено как занесено в 1С':'Отметка 1С снята');
     }
   }
 
@@ -548,12 +594,13 @@ class App{
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;
     });
     if(!list.length) return alert('Нет записей для экспорта');
-    let csv='\ufeffДата,Продукт,Количество,Цена,Сумма\n';
+    let csv='\ufeffДата,Продукт,Количество,Цена,Сумма,В 1С\n';
     list.forEach(r=>{
       const p=(this.data.products||[]).find(x=>x.id===r.productId);
       const name=p?p.name:'Неизвестный продукт';
       const date=new Date(r.date).toLocaleDateString(CONFIG.DATE_FORMAT);
-      csv+=`"${date}","${name}","${r.quantity}","${r.price}","${r.sum.toFixed(2)}"\n`;
+      const in1c=r.in1C?'Да':'Нет';
+      csv+=`"${date}","${name}","${r.quantity}","${r.price}","${r.sum.toFixed(2)}","${in1c}"\n`;
     });
     this.download(csv,`export-${ym}.csv`,'text/csv;charset=utf-8;');
   }
@@ -597,6 +644,7 @@ class App{
     const m={
       add_record:'Добавление записи',
       delete_record:'Удаление записи',
+      edit_record:'Изменение записи',
       add_product:'Добавление продукта',
       edit_product:'Изменение продукта',
       delete_product:'Удаление продукта',
