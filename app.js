@@ -330,6 +330,7 @@ class App{
     this.renderStatistics();
   }
 
+  // === ГРУППИРОВКА ЗАПИСЕЙ ПО ДНЯМ ===
   renderRecords(){
     if(!this.recordsList) return;
     const now=new Date();
@@ -342,12 +343,34 @@ class App{
     const income=list.reduce((s,r)=>s+r.sum,0);
     if(this.monthSumHeader) this.monthSumHeader.textContent=`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
     
-    this.recordsList.innerHTML=list.length?'':'<div class="record-item"><div class="record-info"><div class="record-title">Записей за текущий месяц нет</div></div></div>';
-    
+    if(!list.length){
+      this.recordsList.innerHTML='<div class="record-item"><div class="record-info"><div class="record-title">Записей за текущий месяц нет</div></div></div>';
+      return;
+    }
+
+    this.recordsList.innerHTML='';
+
+    let currentDateKey=null;
+
     list.forEach(r=>{
       const p=(this.data.products||[]).find(x=>x.id===r.productId);
       const name=p?p.name:'Неизвестный продукт';
       const d=new Date(r.date);
+      const dateKey=d.toISOString().slice(0,10); // YYYY-MM-DD
+
+      // если новый день — добавляем заголовок группы
+      if(dateKey!==currentDateKey){
+        currentDateKey=dateKey;
+        const header=document.createElement('div');
+        header.className='records-day-header';
+        header.textContent=d.toLocaleDateString('ru-RU',{
+          day:'numeric',
+          month:'long',
+          year:'numeric'
+        });
+        this.recordsList.appendChild(header);
+      }
+
       const amountClass=r.sum>=0?'plus':'minus';
       const isIn1C=!!r.in1C;
 
@@ -365,7 +388,7 @@ class App{
             <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</span>
           </div>
           <div class="record-details">
-            ${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}
+            ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}
           </div>
           <div class="record-details">
             <label class="record-1c">
