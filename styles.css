@@ -48,7 +48,12 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'He
 .list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .records-items{display:flex;flex-direction:column;gap:10px}
 .record-item{display:flex;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:var(--shadow);transition:background .2s,border-color .2s}
-.record-item--in1c{background:#f0f0f0;border-color:#d0d0d0}
+.record-item--in1c{
+  background:#4c2b7a;      /* тёмно‑фиолетовый фон */
+  border-color:#6d3fb0;    /* чуть более светлая рамка */
+  color:#f5f5ff;           /* общий цвет текста */
+}
+.record-item--in1c .record-details{color:#d9d4ff;} /* подписи светлее на тёмном фоне */
 .record-info{flex:1}
 .record-title{font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
 .record-title-check{width:16px;height:16px;border-radius:50%;border:2px solid transparent;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#2ecc71;opacity:0;transform:scale(.8);transition:opacity .15s,transform .15s}
