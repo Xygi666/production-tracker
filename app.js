@@ -1,4 +1,4 @@
-const CONFIG={VERSION:'3.4.2',STORAGE_KEYS:{PRODUCTS:'pt_products_v3',ENTRIES:'pt_entries_v3',SALARY:'pt_salary_v3',THEME:'pt_theme_v3',LOG:'pt_log_v3',PRESETS:'pt_presets_v3'},DEFAULT_CURRENCY:'₽',DATE_FORMAT:'ru-RU',MAX_LOG:1000};
+const CONFIG={VERSION:'3.4.2',STORAGE_KEYS:{PRODUCTS:'pt_products_v3',ENTRIES:'pt_entries_v3',SALARY:'pt_salary_v3',THEME:'pt_theme_v3',LOG:'pt_log_v3',PRESETS:'pt_presets_v3',HISTORY:'pt_history_v3'},DEFAULT_CURRENCY:'₽',DATE_FORMAT:'ru-RU',MAX_LOG:1000};
 
 const Safe={
   g:(k,f=null)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){console.warn('Safe.g',k,e);return f}},
@@ -15,7 +15,8 @@ class App{
       salary:Safe.g(CONFIG.STORAGE_KEYS.SALARY,{baseSalary:50000,taxRate:13,advanceAmount:0}),
       log:Safe.g(CONFIG.STORAGE_KEYS.LOG,[]),
       presets:Safe.g(CONFIG.STORAGE_KEYS.PRESETS,[1,5,10,25,50]),
-      theme:Safe.gr(CONFIG.STORAGE_KEYS.THEME,'classic')
+      theme:Safe.gr(CONFIG.STORAGE_KEYS.THEME,'classic'),
+      history:Safe.g(CONFIG.STORAGE_KEYS.HISTORY,{}) // ключ YYYY-MM -> snapshot
     };
     
     if(!this.data.products?.length){
@@ -27,7 +28,6 @@ class App{
       });
     }
 
-    // поле in1C для старых записей
     this.data.entries=this.data.entries||[];
     this.data.entries.forEach(e=>{
       if(e.in1C===undefined) e.in1C=false;
@@ -73,11 +73,9 @@ class App{
     this.addRecordBtn=this.q('#addRecordBtn');
     this.recordsList=this.q('#recordsList');
     this.exportCsvBtn=this.q('#exportCsvBtn');
+    this.showOnlyNot1C=this.q('#showOnlyNot1C');
     this.statsGrid=this.q('#statsGrid');
-    this.filterDate=this.q('#filterDate');
-    this.filterAction=this.q('#filterAction');
     this.historyList=this.q('#historyList');
-    this.exportHistoryBtn=this.q('#exportHistoryBtn');
     this.settingsModal=this.q('#settingsModal');
     this.closeSettingsBtn=this.q('#closeSettingsBtn');
     this.saveSettingsBtn=this.q('#saveSettingsBtn');
@@ -137,9 +135,7 @@ class App{
     });
     this.addRecordBtn?.addEventListener('click',()=>this.addRecord());
     this.exportCsvBtn?.addEventListener('click',()=>this.exportCsv());
-    this.filterDate?.addEventListener('change',()=>this.renderHistory());
-    this.filterAction?.addEventListener('change',()=>this.renderHistory());
-    this.exportHistoryBtn?.addEventListener('click',()=>this.exportHistory());
+    this.showOnlyNot1C?.addEventListener('change',()=>this.renderRecords());
     this.closeSettingsBtn?.addEventListener('click',()=>this.closeSettings());
     this.cancelSettingsBtn?.addEventListener('click',()=>this.closeSettings());
     this.saveSettingsBtn?.addEventListener('click',()=>this.saveSettings());
@@ -330,21 +326,28 @@ class App{
     this.renderStatistics();
   }
 
-  // === ГРУППИРОВКА ЗАПИСЕЙ ПО ДНЯМ ===
   renderRecords(){
     if(!this.recordsList) return;
     const now=new Date();
     const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const list=(this.data.entries||[]).filter(e=>{
+    const onlyNot1C=!!this.showOnlyNot1C?.checked;
+
+    let list=(this.data.entries||[]).filter(e=>{
       const d=new Date(e.date);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;
-    }).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    });
+
+    if(onlyNot1C){
+      list=list.filter(e=>!e.in1C);
+    }
+
+    list.sort((a,b)=>new Date(b.date)-new Date(a.date));
     
     const income=list.reduce((s,r)=>s+r.sum,0);
     if(this.monthSumHeader) this.monthSumHeader.textContent=`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
     
     if(!list.length){
-      this.recordsList.innerHTML='<div class="record-item"><div class="record-info"><div class="record-title">Записей за текущий месяц нет</div></div></div>';
+      this.recordsList.innerHTML='<div class="record-item"><div class="record-info"><div class="record-title">Записей за выбранные условия нет</div></div></div>';
       return;
     }
 
@@ -356,9 +359,8 @@ class App{
       const p=(this.data.products||[]).find(x=>x.id===r.productId);
       const name=p?p.name:'Неизвестный продукт';
       const d=new Date(r.date);
-      const dateKey=d.toISOString().slice(0,10); // YYYY-MM-DD
+      const dateKey=d.toISOString().slice(0,10);
 
-      // если новый день — добавляем заголовок группы
       if(dateKey!==currentDateKey){
         currentDateKey=dateKey;
         const header=document.createElement('div');
@@ -412,6 +414,9 @@ class App{
           row.classList.toggle('record-item--in1c',checked);
           if(titleCheck){
             titleCheck.classList.toggle('record-title-check--visible',checked);
+          }
+          if(this.showOnlyNot1C?.checked){
+            this.renderRecords();
           }
         });
       }
@@ -612,20 +617,126 @@ class App{
     window.open(`mailto:?subject=${subject}&body=${body}`,'_self');
   }
 
+  // ====== ИСТОРИЯ ПО МЕСЯЦАМ ======
+
+  // сохраняем «снимок» текущего месяца в историю
+  saveMonthSnapshot(){
+    const now=new Date();
+    const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthEntries=(this.data.entries||[]).filter(e=>{
+      const d=new Date(e.date);
+      return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+    });
+    const salary={...this.data.salary};
+    const snapshot={
+      key,
+      year:now.getFullYear(),
+      month:now.getMonth()+1,
+      createdAt:new Date().toISOString(),
+      entries:monthEntries,
+      salary
+    };
+    this.data.history[key]=snapshot;
+    this.save();
+  }
+
+  // список месяцев и просмотр одного месяца
   renderHistory(){
     if(!this.historyList) return;
-    const df=this.filterDate?.value;
-    const af=this.filterAction?.value;
-    let list=[...(this.data.log||[])];
-    if(df) list=list.filter(e=>new Date(e.timestamp).toISOString().slice(0,10)===df);
-    if(af) list=list.filter(e=>e.action===af);
-    list.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-    this.historyList.innerHTML=list.length?'':'<div class="record-item"><div class="record-info"><div class="record-title">История пуста</div></div></div>';
-    list.forEach(e=>{
-      const d=new Date(e.timestamp);
+    const history=this.data.history||{};
+    const keys=Object.keys(history).sort().reverse(); // от новых к старым
+
+    if(!keys.length){
+      this.historyList.innerHTML='<div class="record-item"><div class="record-info"><div class="record-title">История пуста</div><div class="record-details">Снимки по месяцам ещё не сохранялись</div></div></div>';
+      return;
+    }
+
+    this.historyList.innerHTML='';
+    keys.forEach(key=>{
+      const snap=history[key];
+      const date=new Date(snap.year,snap.month-1,1);
+      const monthName=date.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+      const income=(snap.entries||[]).reduce((s,e)=>s+e.sum,0);
+      const card=document.createElement('div');
+      card.className='record-item';
+      card.innerHTML=`
+        <div class="record-info">
+          <div class="record-title">${monthName}</div>
+          <div class="record-details">Записей: ${(snap.entries||[]).length}</div>
+          <div class="record-details">Выручка: ${income.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</div>
+        </div>
+        <div class="record-actions">
+          <button class="btn btn--sm btn--outline" data-a="view">Открыть</button>
+        </div>
+      `;
+      card.querySelector('[data-a="view"]').addEventListener('click',()=>this.openHistoryMonth(snap));
+      this.historyList.appendChild(card);
+    });
+  }
+
+  openHistoryMonth(snapshot){
+    if(!this.historyList) return;
+    this.historyList.innerHTML='';
+
+    const date=new Date(snapshot.year,snapshot.month-1,1);
+    const monthName=date.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+
+    const header=document.createElement('div');
+    header.className='record-item';
+    header.innerHTML=`
+      <div class="record-info">
+        <div class="record-title">${monthName}</div>
+        <div class="record-details">Снимок создан: ${new Date(snapshot.createdAt).toLocaleString('ru-RU')}</div>
+        <div class="record-details">Записей: ${(snapshot.entries||[]).length}</div>
+      </div>
+      <div class="record-actions">
+        <button class="btn btn--sm btn--outline" data-a="back">Назад</button>
+      </div>
+    `;
+    header.querySelector('[data-a="back"]').addEventListener('click',()=>this.renderHistory());
+    this.historyList.appendChild(header);
+
+    const list=[...(snapshot.entries||[])].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if(!list.length){
+      const empty=document.createElement('div');
+      empty.className='record-item';
+      empty.innerHTML='<div class="record-info"><div class="record-title">Записей нет</div></div>';
+      this.historyList.appendChild(empty);
+      return;
+    }
+
+    let currentDateKey=null;
+    list.forEach(r=>{
+      const p=(this.data.products||[]).find(x=>x.id===r.productId);
+      const name=p?p.name:'Неизвестный продукт';
+      const d=new Date(r.date);
+      const dateKey=d.toISOString().slice(0,10);
+      if(dateKey!==currentDateKey){
+        currentDateKey=dateKey;
+        const h=document.createElement('div');
+        h.className='records-day-header';
+        h.textContent=d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+        this.historyList.appendChild(h);
+      }
+      const amountClass=r.sum>=0?'plus':'minus';
+      const isIn1C=!!r.in1C;
       const row=document.createElement('div');
-      row.className='record-item';
-      row.innerHTML=`<div class="record-info"><div class="record-title">${this.esc(this.actionName(e.action))}</div><div class="record-details">${d.toLocaleDateString(CONFIG.DATE_FORMAT)} ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}</div><div class="record-details">${this.esc(e.details||'')}</div></div>`;
+      row.className='record-item'+(isIn1C?' record-item--in1c':'');
+      row.innerHTML=`
+        <div class="record-info">
+          <div class="record-title">
+            <span class="record-title-check${isIn1C?' record-title-check--visible':''}">✓</span>
+            <span>${this.esc(name)}</span>
+          </div>
+          <div class="record-details">
+            ${r.quantity} × ${r.price}${CONFIG.DEFAULT_CURRENCY} =
+            <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</span>
+          </div>
+          <div class="record-details">
+            ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}
+          </div>
+        </div>
+      `;
       this.historyList.appendChild(row);
     });
   }
@@ -647,16 +758,14 @@ class App{
       csv+=`"${date}","${name}","${r.quantity}","${r.price}","${r.sum.toFixed(2)}","${in1c}"\n`;
     });
     this.download(csv,`export-${ym}.csv`,'text/csv;charset=utf-8;');
+
+    // заодно при экспорте сохраняем снимок месяца
+    this.saveMonthSnapshot();
   }
 
   exportJson(){
     const payload={version:CONFIG.VERSION,timestamp:new Date().toISOString(),data:this.data};
     this.download(JSON.stringify(payload,null,2),`backup-${new Date().toISOString().slice(0,10)}.json`,'application/json');
-  }
-
-  exportHistory(){
-    const payload={version:CONFIG.VERSION,timestamp:new Date().toISOString(),history:this.data.log};
-    this.download(JSON.stringify(payload,null,2),`history-${new Date().toISOString().slice(0,10)}.json`,'application/json');
   }
 
   download(content,name,type){
@@ -678,6 +787,7 @@ class App{
     Safe.s(CONFIG.STORAGE_KEYS.LOG,(this.data.log||[]).slice(-CONFIG.MAX_LOG));
     Safe.s(CONFIG.STORAGE_KEYS.PRESETS,this.data.presets);
     Safe.sr(CONFIG.STORAGE_KEYS.THEME,this.data.theme||'classic');
+    Safe.s(CONFIG.STORAGE_KEYS.HISTORY,this.data.history);
   }
 
   log(a,item,details){
