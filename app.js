@@ -224,3 +224,15 @@ class App{
     this.productSuggestions.classList.remove('hidden');
     this.productSuggestions.innerHTML='';
     items.forEach(
+
+  let app;
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM ready, init App...');
+  try {
+    app = new App();
+    console.log('App initialized');
+  } catch (e) {
+    console.error('App init error', e);
+  }
+});
+
