@@ -422,4 +422,521 @@ class App{
         });
       }
       
-      row.querySelector('.btn--dange
+      row.querySelector('.btn--danger').addEventListener('click',()=>this.deleteRecord(r.id));
+      this.recordsList.appendChild(row);
+    });
+  }
+
+  deleteRecord(id){
+    if(!confirm('Удалить запись?')) return;
+    const i=(this.data.entries||[]).findIndex(r=>r.id===id);
+    if(i>=0){
+      const old=this.data.entries[i];
+      this.data.entries.splice(i,1);
+      this.log('delete_record',old,'Удалена запись');
+      this.save();
+      this.renderRecords();
+      this.renderStatistics();
+    }
+  }
+
+  toggle1C(id,checked){
+    const entry=(this.data.entries||[]).find(e=>e.id===id);
+    if(entry){
+      entry.in1C=checked;
+      this.save();
+      this.log('edit_record',entry,checked?'Отмечено как занесено в 1С':'Отметка 1С снята');
+    }
+  }
+
+  // ====== СТАТИСТИКА ======
+  renderStatistics(){
+    if(!this.statsGrid) return;
+    const now=new Date();
+    const y=now.getFullYear();
+    const m=now.getMonth()+1;
+    const monthEntries=(this.data.entries||[]).filter(e=>{
+      const d=new Date(e.date);
+      return d.getFullYear()===y && (d.getMonth()+1)===m;
+    });
+
+    const income=monthEntries.reduce((s,r)=>s+r.sum,0);
+    const base=+this.data.salary.baseSalary||0;
+    const taxRate=(+this.data.salary.taxRate||0)/100;
+    const adv=+this.data.salary.advanceAmount||0;
+    const taxAmount=(base+income)*taxRate;
+    const finalAmount=(base+income)-taxAmount-adv;
+
+    const cards=[
+      {label:'Доход (выручка)',value:`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:'income'},
+      {label:'Оклад',value:`${base.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:'neutral'},
+      {label:'Налог',value:`${taxAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:'expense'},
+      {label:'Аванс',value:`${adv.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:'expense'},
+      {label:'На руки (итог)',value:`${finalAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`,type:finalAmount>=0?'income':'expense'}
+    ];
+
+    this.statsGrid.innerHTML='';
+    cards.forEach(c=>{
+      const el=document.createElement('div');
+      el.className=`stat-card stat-card--${c.type}`;
+      el.innerHTML=`<div class="stat-value">${c.value}</div><div class="stat-label">${c.label}</div>`;
+      this.statsGrid.appendChild(el);
+    });
+    if(this.monthSumHeader) this.monthSumHeader.textContent=`${income.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
+    if(this.finalAmountHeader) this.finalAmountHeader.textContent=`${finalAmount.toFixed(2)} ${CONFIG.DEFAULT_CURRENCY}`;
+
+    // блок "Продукция"
+    if(this.statsProducts){
+      const summary=this.buildProductsSummary(monthEntries);
+      this.statsProducts.innerHTML='';
+      if(!summary.length){
+        this.statsProducts.innerHTML='<div class="record-item"><div class="record-info"><div class="record-title">Нет записей за текущий месяц</div></div></div>';
+      }else{
+        summary.forEach(row=>{
+          const div=document.createElement('div');
+          div.className='record-item';
+          div.innerHTML=`
+            <div class="record-info">
+              <div class="record-title">${this.esc(row.name)}</div>
+              <div class="record-details">
+                Сделано: ${row.okQty} шт.
+                ${row.defectQty>0?` | Брак: ${row.defectQty} шт. (${row.defectPercent.toFixed(1)}%)`:''}
+                ${row.revenue!==0?` | Выручка: ${row.revenue.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}`:''}
+              </div>
+            </div>
+          `;
+          this.statsProducts.appendChild(div);
+        });
+      }
+    }
+  }
+
+  buildProductsSummary(entries){
+    const map=new Map();
+    entries.forEach(e=>{
+      const p=(this.data.products||[]).find(x=>x.id===e.productId);
+      const name=p?p.name:'Неизвестный продукт';
+      if(!map.has(e.productId)) map.set(e.productId,{name,okQty:0,defectQty:0,revenue:0});
+      const item=map.get(e.productId);
+      if(e.quantity>=0){
+        item.okQty+=e.quantity;
+      }else{
+        item.defectQty+=Math.abs(e.quantity);
+      }
+      item.revenue+=e.sum;
+    });
+    return Array.from(map.values()).map(r=>({
+      ...r,
+      defectPercent:r.okQty>0?(r.defectQty*100/r.okQty):0
+    })).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  }
+
+  openSettings(){
+    if(!this.settingsModal) return;
+    const s=this.data.salary||{};
+    if(this.baseSalary) this.baseSalary.value=s.baseSalary??0;
+    if(this.taxRate) this.taxRate.value=s.taxRate??13;
+    if(this.advanceAmount) this.advanceAmount.value=s.advanceAmount??0;
+    if(this.themeSelect) this.themeSelect.value=this.data.theme||'classic';
+    if(this.presetsInput) this.presetsInput.value=(this.data.presets||[1,5,10,25,50]).join(',');
+    this.renderProductsList();
+    this.settingsModal.classList.add('modal--active');
+  }
+
+  closeSettings(){this.settingsModal?.classList.remove('modal--active')}
+
+  saveSettings(){
+    this.data.salary={
+      baseSalary:parseFloat(this.baseSalary?.value)||0,
+      taxRate:parseFloat(this.taxRate?.value)||0,
+      advanceAmount:parseFloat(this.advanceAmount?.value)||0
+    };
+    const theme=this.themeSelect?.value||this.data.theme;
+    if(theme!==this.data.theme){
+      this.data.theme=theme;
+      this.applyTheme(theme);
+      Safe.sr(CONFIG.STORAGE_KEYS.THEME,theme);
+    }
+    const presets=(this.presetsInput?.value||'').split(',').map(x=>parseFloat(x.trim())).filter(x=>!isNaN(x)&&x>0);
+    this.data.presets=presets.length?presets:[1,5,10,25,50];
+    this.log('settings',this.data.salary,'Изменены настройки');
+    this.save();
+    this.closeSettings();
+    this.renderPresets();
+    this.renderStatistics();
+  }
+
+  openProductModal(productId=null){
+    this.editingProductId=productId;
+    if(productId){
+      const p=(this.data.products||[]).find(x=>x.id===productId);
+      if(p){
+        this.productModalTitle.textContent='Изменить продукт';
+        this.productNameInput.value=p.name;
+        this.productPriceInput.value=p.price;
+        this.productDefectPriceInput.value=(typeof p.priceDefect==='number'?p.priceDefect:'');
+      }
+    }else{
+      this.productModalTitle.textContent='Добавить продукт';
+      this.productNameInput.value='';
+      this.productPriceInput.value='';
+      this.productDefectPriceInput.value='';
+    }
+    this.productModal.classList.add('modal--active');
+    setTimeout(()=>this.productNameInput?.focus(),100);
+  }
+
+  closeProductModal(){
+    this.productModal?.classList.remove('modal--active');
+    this.editingProductId=null;
+  }
+
+  saveProduct(){
+    const name=this.productNameInput?.value?.trim();
+    const price=parseFloat(this.productPriceInput?.value);
+    const defectPrice=parseFloat(this.productDefectPriceInput?.value);
+    if(!name) return alert('Введите название продукта');
+    if(isNaN(price)||price<=0) return alert('Введите корректную цену');
+    const priceDefect=isNaN(defectPrice)?null:defectPrice;
+    if(this.editingProductId){
+      const p=(this.data.products||[]).find(x=>x.id===this.editingProductId);
+      if(p){
+        p.name=name;
+        p.price=price;
+        p.priceDefect=priceDefect;
+        this.log('edit_product',p,'Изменён продукт');
+      }
+    }else{
+      const p={id:Date.now(),name,price,priceDefect,archived:false,created:new Date().toISOString(),favorite:false};
+      (this.data.products=this.data.products||[]).push(p);
+      this.log('add_product',p,'Добавлен продукт');
+    }
+    this.save();
+    this.closeProductModal();
+    this.renderProductsList();
+    this.updateProductSuggestions();
+  }
+
+  renderProductsList(){
+    if(!this.productsList) return;
+    this.productsList.innerHTML='';
+    (this.data.products||[]).forEach(p=>{
+      const row=document.createElement('div');
+      row.className='record-item';
+      const star=p.favorite?'⭐':'☆';
+      row.innerHTML=`<div class="record-info"><div class="record-title">${star} ${this.esc(p.name)}</div><div class="record-details">Цена: ${p.price}${CONFIG.DEFAULT_CURRENCY}${typeof p.priceDefect==='number'?' | Брак: '+p.priceDefect+CONFIG.DEFAULT_CURRENCY:''}</div></div><div class="record-actions"><button class="btn btn--sm btn--outline" data-a="fav">${p.favorite?'Убрать':'Избранное'}</button><button class="btn btn--sm btn--outline" data-a="edit">Изменить</button><button class="btn btn--sm btn--outline" data-a="toggle">${p.archived?'Восстановить':'Архив'}</button><button class="btn btn--sm btn--danger" data-a="del">Удалить</button></div>`;
+      row.querySelector('[data-a="fav"]').addEventListener('click',()=>this.toggleFavorite(p.id));
+      row.querySelector('[data-a="edit"]').addEventListener('click',()=>this.openProductModal(p.id));
+      row.querySelector('[data-a="toggle"]').addEventListener('click',()=>this.toggleProduct(p.id));
+      row.querySelector('[data-a="del"]').addEventListener('click',()=>this.deleteProduct(p.id));
+      this.productsList.appendChild(row);
+    });
+  }
+
+  toggleProduct(id){
+    const p=(this.data.products||[]).find(x=>x.id===id);
+    if(!p) return;
+    p.archived=!p.archived;
+    this.log('edit_product',p,p.archived?'Архивирован':'Восстановлен');
+    this.save();
+    this.renderProductsList();
+    this.updateProductSuggestions();
+  }
+
+  deleteProduct(id){
+    if((this.data.entries||[]).some(e=>e.productId===id)){
+      return alert('Нельзя удалить продукт с записями. Переведите его в архив.');
+    }
+    if(!confirm('Удалить продукт?')) return;
+    const i=(this.data.products||[]).findIndex(p=>p.id===id);
+    if(i>=0){
+      const old=this.data.products[i];
+      this.data.products.splice(i,1);
+      this.log('delete_product',old,'Удалён продукт');
+      this.save();
+      this.renderProductsList();
+      this.updateProductSuggestions();
+    }
+  }
+
+  shareBackup(){
+    const data={version:CONFIG.VERSION,timestamp:new Date().toISOString(),data:this.data};
+    const content=JSON.stringify(data,null,2);
+    const subject=encodeURIComponent('Backup Production Tracker');
+    const body=encodeURIComponent('Бэкап данных от '+new Date().toLocaleDateString()+':\n\n'+content.substring(0,1000)+'...');
+    window.open(`mailto:?subject=${subject}&body=${body}`,'_self');
+  }
+
+  // ====== ИСТОРИЯ ПО МЕСЯЦАМ ======
+
+  saveMonthSnapshot(){
+    const now=new Date();
+    const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthEntries=(this.data.entries||[]).filter(e=>{
+      const d=new Date(e.date);
+      return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+    });
+    const salary={...this.data.salary};
+    const productsSummary=this.buildProductsSummary(monthEntries);
+
+    const snapshot={
+      key,
+      year:now.getFullYear(),
+      month:now.getMonth()+1,
+      createdAt:new Date().toISOString(),
+      entries:monthEntries,
+      salary,
+      productsSummary
+    };
+    this.data.history[key]=snapshot;
+    this.save();
+  }
+
+  renderHistory(){
+    if(!this.historyList) return;
+    const history=this.data.history||{};
+    const keys=Object.keys(history).sort().reverse();
+
+    if(!keys.length){
+      this.historyList.innerHTML='<div class="record-item"><div class="record-info"><div class="record-title">История пуста</div><div class="record-details">Снимки по месяцам ещё не сохранялись</div></div></div>';
+      return;
+    }
+
+    this.historyList.innerHTML='';
+    keys.forEach(key=>{
+      const snap=history[key];
+      const date=new Date(snap.year,snap.month-1,1);
+      const monthName=date.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+      const income=(snap.entries||[]).reduce((s,e)=>s+e.sum,0);
+      const card=document.createElement('div');
+      card.className='record-item';
+      card.innerHTML=`
+        <div class="record-info">
+          <div class="record-title">${monthName}</div>
+          <div class="record-details">Записей: ${(snap.entries||[]).length}</div>
+          <div class="record-details">Выручка: ${income.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</div>
+        </div>
+        <div class="record-actions">
+          <button class="btn btn--sm btn--outline" data-a="view">Открыть</button>
+        </div>
+      `;
+      card.querySelector('[data-a="view"]').addEventListener('click',()=>this.openHistoryMonth(snap));
+      this.historyList.appendChild(card);
+    });
+  }
+
+  openHistoryMonth(snapshot){
+    if(!this.historyList) return;
+    this.historyList.innerHTML='';
+
+    const date=new Date(snapshot.year,snapshot.month-1,1);
+    const monthName=date.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+
+    const header=document.createElement('div');
+    header.className='record-item';
+    header.innerHTML=`
+      <div class="record-info">
+        <div class="record-title">${monthName}</div>
+        <div class="record-details">Снимок создан: ${new Date(snapshot.createdAt).toLocaleString('ru-RU')}</div>
+        <div class="record-details">Записей: ${(snapshot.entries||[]).length}</div>
+      </div>
+      <div class="record-actions">
+        <button class="btn btn--sm btn--outline" data-a="back">Назад</button>
+      </div>
+    `;
+    header.querySelector('[data-a="back"]').addEventListener('click',()=>this.renderHistory());
+    this.historyList.appendChild(header);
+
+    const list=[...(snapshot.entries||[])].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if(!list.length){
+      const empty=document.createElement('div');
+      empty.className='record-item';
+      empty.innerHTML='<div class="record-info"><div class="record-title">Записей нет</div></div>';
+      this.historyList.appendChild(empty);
+    }else{
+      let currentDateKey=null;
+      list.forEach(r=>{
+        const p=(this.data.products||[]).find(x=>x.id===r.productId);
+        const name=p?p.name:'Неизвестный продукт';
+        const d=new Date(r.date);
+        const dateKey=d.toISOString().slice(0,10);
+        if(dateKey!==currentDateKey){
+          currentDateKey=dateKey;
+          const h=document.createElement('div');
+          h.className='records-day-header';
+          h.textContent=d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+          this.historyList.appendChild(h);
+        }
+        const amountClass=r.sum>=0?'plus':'minus';
+        const isIn1C=!!r.in1C;
+        const row=document.createElement('div');
+        row.className='record-item'+(isIn1C?' record-item--in1c':'');
+        row.innerHTML=`
+          <div class="record-info">
+            <div class="record-title">
+              <span class="record-title-check${isIn1C?' record-title-check--visible':''}">✓</span>
+              <span>${this.esc(name)}</span>
+            </div>
+            <div class="record-details">
+              ${r.quantity} × ${r.price}${CONFIG.DEFAULT_CURRENCY} =
+              <span class="record-amount ${amountClass}">${r.sum.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}</span>
+            </div>
+            <div class="record-details">
+              ${d.toLocaleTimeString(CONFIG.DATE_FORMAT,{hour:'2-digit',minute:'2-digit'})}
+            </div>
+          </div>
+        `;
+        this.historyList.appendChild(row);
+      });
+    }
+
+    // сводка продукции внизу
+    const productsSummary=(snapshot.productsSummary||[]).length
+      ? snapshot.productsSummary
+      : this.buildProductsSummary(snapshot.entries||[]);
+
+    const title=document.createElement('div');
+    title.className='records-day-header';
+    title.textContent='Продукция за месяц';
+    this.historyList.appendChild(title);
+
+    if(!productsSummary.length){
+      const empty=document.createElement('div');
+      empty.className='record-item';
+      empty.innerHTML='<div class="record-info"><div class="record-title">Нет данных по продукции</div></div>';
+      this.historyList.appendChild(empty);
+    }else{
+      productsSummary.forEach(row=>{
+        const div=document.createElement('div');
+        div.className='record-item';
+        div.innerHTML=`
+          <div class="record-info">
+            <div class="record-title">${this.esc(row.name)}</div>
+            <div class="record-details">
+              Сделано: ${row.okQty} шт.
+              ${row.defectQty>0?` | Брак: ${row.defectQty} шт. (${row.defectPercent.toFixed(1)}%)`:''}
+              ${row.revenue!==0?` | Выручка: ${row.revenue.toFixed(2)}${CONFIG.DEFAULT_CURRENCY}`:''}
+            </div>
+          </div>
+        `;
+        this.historyList.appendChild(div);
+      });
+    }
+  }
+
+  exportCsv(){
+    const now=new Date();
+    const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const list=(this.data.entries||[]).filter(e=>{
+      const d=new Date(e.date);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===ym;
+    });
+    if(!list.length) return alert('Нет записей для экспорта');
+    let csv='\ufeffДата,Продукт,Количество,Цена,Сумма,В 1С\n';
+    list.forEach(r=>{
+      const p=(this.data.products||[]).find(x=>x.id===r.productId);
+      const name=p?p.name:'Неизвестный продукт';
+      const date=new Date(r.date).toLocaleDateString(CONFIG.DATE_FORMAT);
+      const in1c=r.in1C?'Да':'Нет';
+      csv+=`"${date}","${name}","${r.quantity}","${r.price}","${r.sum.toFixed(2)}","${in1c}"\n`;
+    });
+    this.download(csv,`export-${ym}.csv`,'text/csv;charset=utf-8;');
+
+    this.saveMonthSnapshot();
+  }
+
+  exportJson(){
+    const payload={version:CONFIG.VERSION,timestamp:new Date().toISOString(),data:this.data};
+    this.download(JSON.stringify(payload,null,2),`backup-${new Date().toISOString().slice(0,10)}.json`,'application/json');
+  }
+
+  download(content,name,type){
+    const blob=new Blob([content],{type});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  save(){
+    Safe.s(CONFIG.STORAGE_KEYS.PRODUCTS,this.data.products);
+    Safe.s(CONFIG.STORAGE_KEYS.ENTRIES,this.data.entries);
+    Safe.s(CONFIG.STORAGE_KEYS.SALARY,this.data.salary);
+    Safe.s(CONFIG.STORAGE_KEYS.LOG,(this.data.log||[]).slice(-CONFIG.MAX_LOG));
+    Safe.s(CONFIG.STORAGE_KEYS.PRESETS,this.data.presets);
+    Safe.sr(CONFIG.STORAGE_KEYS.THEME,this.data.theme||'classic');
+    Safe.s(CONFIG.STORAGE_KEYS.HISTORY,this.data.history);
+  }
+
+  log(a,item,details){
+    (this.data.log=this.data.log||[]).push({id:Date.now()+Math.random()*1000|0,timestamp:new Date().toISOString(),action:a,item,details});
+  }
+
+  actionName(a){
+    const m={
+      add_record:'Добавление записи',
+      delete_record:'Удаление записи',
+      edit_record:'Изменение записи',
+      add_product:'Добавление продукта',
+      edit_product:'Изменение продукта',
+      delete_product:'Удаление продукта',
+      settings:'Изменение настроек'
+    };
+    return m[a]||a;
+  }
+
+  esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+  }
+
+  importProducts(file){
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const csv=e.target.result;
+        const lines=csv.split('\n').filter(l=>l.trim());
+        if(lines.length<2) return alert('Файл должен содержать заголовки и данные');
+        const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+        const nameIdx=headers.findIndex(h=>h.toLowerCase().includes('назв')||h.toLowerCase().includes('name'));
+        const priceIdx=headers.findIndex(h=>h.toLowerCase().includes('цен')||h.toLowerCase().includes('price'));
+        if(nameIdx===-1||priceIdx===-1) return alert('Файл должен содержать колонки с названием и ценой');
+        let added=0;
+        for(let i=1;i<lines.length;i++){
+          const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+          const name=cols[nameIdx]?.trim();
+          const price=parseFloat(cols[priceIdx]);
+          if(name&&!isNaN(price)&&price>0){
+            const exists=(this.data.products||[]).some(p=>p.name.toLowerCase()===name.toLowerCase());
+            if(!exists){
+              (this.data.products=this.data.products||[]).push({
+                id:Date.now()+Math.random(),
+                name,
+                price,
+                priceDefect:null,
+                archived:false,
+                created:new Date().toISOString(),
+                favorite:false
+              });
+              added++;
+            }
+          }
+        }
+        this.save();
+        this.renderProductsList();
+        this.updateProductSuggestions();
+        alert(`Импортировано продуктов: ${added}`);
+      }catch(err){
+        alert('Ошибка чтения файла');
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+let app;
+document.addEventListener('DOMContentLoaded',()=>{app=new App();});
