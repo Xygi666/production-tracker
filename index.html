@@ -8,7 +8,6 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="icon" href="icon-512.png" sizes="512x512">
-  <!-- добавлен параметр версии, чтобы PWA подтянул новый CSS -->
   <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body data-theme="classic">
@@ -38,6 +37,7 @@
 
     <main class="main">
       <div class="main__container">
+        <!-- УЧЁТ -->
         <section class="screen screen--active" data-screen="records">
           <div class="form-group">
             <label for="productSearch">Продукт</label>
@@ -62,36 +62,32 @@
             </div>
           </div>
           <button id="addRecordBtn" class="btn btn--primary btn--full">Добавить запись</button>
+
           <div class="records-list">
             <div class="list-header">
               <h3>Записи текущего месяца</h3>
-              <button id="exportCsvBtn" class="btn btn--sm btn--outline">📊 Экспорт CSV</button>
+              <div class="list-header-controls">
+                <label class="checkbox-label">
+                  <input id="showOnlyNot1C" type="checkbox">
+                  <span>Только незанесённые</span>
+                </label>
+                <button id="exportCsvBtn" class="btn btn--sm btn--outline">📊 Экспорт CSV</button>
+              </div>
             </div>
             <div id="recordsList" class="records-items"></div>
           </div>
         </section>
 
+        <!-- СТАТИСТИКА -->
         <section class="screen" data-screen="statistics">
           <h2>Статистика за текущий месяц</h2>
           <div id="statsGrid" class="stats-grid"></div>
         </section>
 
+        <!-- ИСТОРИЯ -->
         <section class="screen" data-screen="history">
           <div class="history-header">
-            <h2>История действий</h2>
-            <div class="history-filters">
-              <input id="filterDate" class="form-control" type="date">
-              <select id="filterAction" class="form-control">
-                <option value="">Все действия</option>
-                <option value="add_record">Добавление записи</option>
-                <option value="delete_record">Удаление записи</option>
-                <option value="add_product">Добавление продукта</option>
-                <option value="edit_product">Изменение продукта</option>
-                <option value="delete_product">Удаление продукта</option>
-                <option value="settings">Изменение настроек</option>
-              </select>
-              <button id="exportHistoryBtn" class="btn btn--sm btn--outline">📄 Экспорт истории</button>
-            </div>
+            <h2>История по месяцам</h2>
           </div>
           <div id="historyList" class="history-list"></div>
         </section>
@@ -99,7 +95,7 @@
     </main>
   </div>
 
-  <!-- Настройки -->
+  <!-- НАСТРОЙКИ -->
   <div id="settingsModal" class="modal">
     <div class="modal__backdrop"></div>
     <div class="modal__content">
@@ -169,7 +165,7 @@
     </div>
   </div>
 
-  <!-- Продукт -->
+  <!-- ПРОДУКТ -->
   <div id="productModal" class="modal">
     <div class="modal__backdrop"></div>
     <div class="modal__content modal__content--sm">
