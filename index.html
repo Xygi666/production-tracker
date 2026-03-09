@@ -80,8 +80,11 @@
 
         <!-- СТАТИСТИКА -->
         <section class="screen" data-screen="statistics">
-          <h2>Статистика за текущий месяц</h2>
+          <h2>Финансы</h2>
           <div id="statsGrid" class="stats-grid"></div>
+
+          <h2 style="margin-top:24px;">Продукция</h2>
+          <div id="statsProducts" class="history-list"></div>
         </section>
 
         <!-- ИСТОРИЯ -->
@@ -178,29 +181,3 @@
           <label for="productNameInput">Название продукта</label>
           <input id="productNameInput" class="form-control" type="text" placeholder="Название">
         </div>
-        <div class="form-group">
-          <label for="productPriceInput">Цена</label>
-          <input id="productPriceInput" class="form-control" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
-        </div>
-        <div class="form-group">
-          <label for="productDefectPriceInput">Цена брака (обычно отрицательная, например -200)</label>
-          <input id="productDefectPriceInput" class="form-control" type="number" step="0.01" inputmode="decimal" placeholder="-200">
-        </div>
-      </div>
-      <div class="modal__footer">
-        <button id="saveProductBtn" class="btn btn--primary">Сохранить</button>
-        <button id="cancelProductBtn" class="btn btn--outline">Отмена</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-      });
-    }
-  </script>
-</body>
-</html>
